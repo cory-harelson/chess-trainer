@@ -249,6 +249,7 @@
             <button id="tr-hint" title="Highlight the piece to move &mdash; counts as a miss">&#128161; Hint</button>
             <button id="tr-skip" title="Skip this line &mdash; it will come back">Skip line</button>
             <button id="tr-repeat" title="Run this line again from the start (R)">&#8635; Repeat</button>
+            <button id="tr-shufbtn" title="Shuffle the order of the remaining lines">&#128256; Shuffle</button>
             <button id="tr-next" class="primary" style="display:none" title="Continue to the next line (Enter or N)">Next line &#9654;</button>
             <button id="tr-quit" style="margin-left:auto">End session</button>
           </div>
@@ -3116,6 +3117,25 @@ function trNextFromReview() {
   trHideOverlay();
   trAdvance();
 }
+// Shuffle mid-session: reorders the line list (and with it the play order of
+// everything still owed). The line currently on the board keeps playing.
+function trShuffleSession() {
+  if (!trSession || trSession.done) return;
+  var s = trSession;
+  var N = s.lines.length;
+  if (N < 2) return;
+  var order = [];
+  for (var i = 0; i < N; i++) order.push(i);
+  trShuffle(order);
+  var map = {}, newLines = [];
+  order.forEach(function(oldI, newI){ map[oldI] = newI; newLines[newI] = s.lines[oldI]; });
+  s.lines = newLines;
+  s.queue = s.queue.map(function(i){ return map[i]; }).sort(function(a, b){ return a - b; });
+  s.failedNext = s.failedNext.map(function(i){ return map[i]; }).sort(function(a, b){ return a - b; });
+  if (s.curLi >= 0) s.curLi = map[s.curLi];
+  if (play) play.li = map[play.li];
+  renderSession();
+}
 // Click a line in the session list to jump to it: start there, work down the
 // list, then wrap back around to whatever was skipped over.
 function trJumpTo(i) {
@@ -3308,6 +3328,7 @@ document.getElementById('tr-skip').onclick = function(){
 };
 document.getElementById('tr-quit').onclick = function(){ if (trSession && !trSession.done) trFinish(true); };
 document.getElementById('tr-next').onclick = trNextFromReview;
+document.getElementById('tr-shufbtn').onclick = trShuffleSession;
 document.getElementById('tr-ov-next').onclick = trNextFromReview;
 document.getElementById('tr-ov-repeat').onclick = trRepeatLine;
 document.getElementById('tr-repeat').onclick = trRepeatLine;

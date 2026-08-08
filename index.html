@@ -251,7 +251,7 @@
           <div id="tr-bar"><div id="tr-barfill"></div></div>
           <div style="display:flex;gap:8px;margin-bottom:10px;">
             <button id="tr-hint" title="Highlight the piece to move &mdash; counts as a miss">&#128161; Hint</button>
-            <button id="tr-skip" title="Skip this line &mdash; it will come back">Skip line</button>
+            <button id="tr-skip" title="Skip for now &mdash; no penalty, it moves to the back of the pile">Skip line</button>
             <button id="tr-repeat" title="Run this line again from the start (R)">&#8635; Repeat</button>
             <button id="tr-shufbtn" title="Shuffle the order of the remaining lines">&#128256; Shuffle</button>
             <button id="tr-next" class="primary" style="display:none" title="Continue to the next line (Enter or N)">Next line &#9654;</button>
@@ -3408,12 +3408,10 @@ document.getElementById('tr-hint').onclick = function(){
 document.getElementById('tr-skip').onclick = function(){
   if (!trSession || trSession.done || !play || play.review) return;
   trTok++;
-  var L = trSession.lines[play.li];
-  L.dots++;
-  trSession.failedNext.push(play.li);
+  trSession.queue.push(play.li);   // no dot, no penalty — just moves to the back of the pile
   play = null;
   trSession.curLi = -1;
-  setStatus('', 'Skipped — it comes back later.');
+  setStatus('', 'Skipped — it comes back at the end of this cycle.');
   renderSession();
   later(600, trAdvance);
 };

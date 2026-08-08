@@ -142,6 +142,9 @@
   .tr-line .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tr-line.done .nm { color: var(--dim); }
   .tr-line .dots { color: #e0756a; letter-spacing: 2px; font-size: 11px; white-space: nowrap; flex: 0 0 auto; }
+  .tr-line .rm { color: var(--dim); font-weight: 800; cursor: pointer; padding: 0 5px; flex: 0 0 auto;
+    font-size: 15px; line-height: 1; border-radius: 4px; }
+  .tr-line .rm:hover { color: #fff; background: #a94438; }
   .tr-sum-head { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
   #tr-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: rgba(20,19,18,.45); z-index: 90; border-radius: 6px; }
@@ -2829,8 +2832,9 @@ function setStatus(kind, html) {
 function renderSessHead() {
   if (!trSession) return;
   var s = trSession;
-  var total = s.lines.length;
-  var passed = s.lines.filter(function(L){ return L.passed; }).length;
+  var active = s.lines.filter(function(L){ return !L.removed; });
+  var total = active.length;
+  var passed = active.filter(function(L){ return L.passed; }).length;
   var acc = s.attempts ? Math.round(100 * s.correct / s.attempts) : 100;
   var L = (s.curLi >= 0) ? s.lines[s.curLi] : null;
   var cEl = document.getElementById('tr-current');
@@ -2855,6 +2859,7 @@ function renderLineList() {
   var wrap = document.getElementById('tr-linelist');
   wrap.innerHTML = '';
   trSession.lines.forEach(function(L, i){
+    if (L.removed) return;
     var row = document.createElement('div');
     var isCur = (i === trSession.curLi && !!play);
     var clickable = !L.passed && !isCur && !trSession.done;
@@ -2880,6 +2885,12 @@ function renderLineList() {
     }
     var a = trMkLink(L.c, L.v, 0);
     if (a) row.appendChild(a);
+    var rm = document.createElement('span');
+    rm.className = 'rm';
+    rm.textContent = '×';
+    rm.title = 'Remove this line from the session (no penalty, no comeback)';
+    rm.onclick = function(e){ e.stopPropagation(); trRemoveLine(i); };
+    row.appendChild(rm);
     wrap.appendChild(row);
     if (isCur) setTimeout(function(){ try { row.scrollIntoView({block:'nearest'}); } catch(e) {} }, 0);
   });
@@ -3038,26 +3049,61 @@ function trLineDone() {
     later(1100, trRedrillNext);
   }
 }
+// Play the line's moves forward from the current position to targetPly,
+// animated at a slower, followable pace, then call `then`.
+function trWalkForward(targetPly, then) {
+  var L = trSession.lines[play.li];
+  function step() {
+    if (!play || play.phase !== 'redrill') return;
+    if (game.history().length >= targetPly) { then(); return; }
+    trApply(L.moves[game.history().length]);
+    later(600, step);
+  }
+  step();
+}
+function trRedrillFinish() {
+  play.lock = true;
+  if (play.practice) { renderSession(); trEnterReview('practice-miss'); return; }
+  var L = trSession.lines[play.li];
+  L.dots++;
+  if (trSession.failedNext.indexOf(play.li) === -1) trSession.failedNext.push(play.li);
+  renderSession();
+  trEnterReview('fixed');
+}
+function trRedrillPrompt() {
+  var L = trSession.lines[play.li];
+  var ply = play.rq[0];
+  play.lock = false;
+  setStatus('', 'Fix the miss (' + play.rq.length + ' left): find move <b>' +
+    (Math.floor(ply/2)+1) + (ply % 2 ? '…' : '.') + '</b> for ' + sideName(L.side));
+}
 function trRedrillNext() {
   if (!play || play.phase !== 'redrill') return;
   var L = trSession.lines[play.li];
   if (!play.rq.length) {
+    // last miss fixed — play the rest of the line out so the whole path is visible
     play.lock = true;
-    if (play.practice) { renderSession(); trEnterReview('practice-miss'); return; }
-    L.dots++;
-    if (trSession.failedNext.indexOf(play.li) === -1) trSession.failedNext.push(play.li);
-    renderSession();
-    trEnterReview('fixed');
+    if (game.history().length < L.moves.length) setStatus('good', '✓ All fixed — watch the line play out…');
+    trWalkForward(L.moves.length, trRedrillFinish);
     return;
   }
   var ply = play.rq[0];
-  game = new Chess();
-  for (var i = 0; i < ply; i++) game.move(L.moves[i]);
-  moveStack = L.moves.slice(0, ply); ptr = ply; selected = null;
-  play.lock = false;
-  renderPosition(); renderMoveStrip();
-  setStatus('', 'Fix the miss (' + play.rq.length + ' left): find move <b>' +
-    (Math.floor(ply/2)+1) + (ply % 2 ? '…' : '.') + '</b> for ' + sideName(L.side));
+  var cur = game.history().length;
+  if (cur > ply) {
+    // target is behind us — jump back instantly (first entry, or a re-queued miss)
+    game = new Chess();
+    for (var i = 0; i < ply; i++) { if (!(game.move(L.moves[i]) || game.move(sanClean(L.moves[i])))) break; }
+    moveStack = L.moves.slice(0, ply); ptr = ply; selected = null;
+    renderPosition(); renderMoveStrip();
+    trRedrillPrompt();
+  } else if (cur === ply) {
+    trRedrillPrompt();
+  } else {
+    // walk through the in-between moves to the next miss
+    play.lock = true;
+    setStatus('', 'Replaying up to your next miss…');
+    trWalkForward(ply, trRedrillPrompt);
+  }
 }
 // ----- end-of-line review pause -----
 function trReviewMsg(kind) {
@@ -3117,6 +3163,30 @@ function trNextFromReview() {
   trHideOverlay();
   trAdvance();
 }
+// Remove a line from the session entirely: no dots, no comeback, no trace in
+// the summary — it just leaves the deck (this session only; the picker
+// selection is untouched).
+function trRemoveLine(i) {
+  if (!trSession || trSession.done) return;
+  var L = trSession.lines[i];
+  if (!L || L.removed) return;
+  L.removed = true;
+  var qx = trSession.queue.indexOf(i);
+  if (qx !== -1) trSession.queue.splice(qx, 1);
+  var fx = trSession.failedNext.indexOf(i);
+  if (fx !== -1) trSession.failedNext.splice(fx, 1);
+  if (play && play.li === i) {       // removing the line on the board — move on
+    trTok++;
+    trHideOverlay();
+    play = null;
+    trSession.curLi = -1;
+    setStatus('', 'Removed from this session.');
+    renderSession();
+    later(500, trAdvance);
+    return;
+  }
+  renderSession();
+}
 // Shuffle mid-session: reorders the line list (and with it the play order of
 // everything still owed). The line currently on the board keeps playing.
 function trShuffleSession() {
@@ -3141,7 +3211,7 @@ function trShuffleSession() {
 function trJumpTo(i) {
   if (!trSession || trSession.done) return;
   var L = trSession.lines[i];
-  if (L.passed) return;
+  if (L.passed || L.removed) return;
   if (play && play.li === i && !play.review) return;   // already playing it
   trTok++;
   trHideOverlay();
@@ -3188,6 +3258,7 @@ function trPersist() {
   if (trSession.saved) return;
   trSession.saved = true;
   trSession.lines.forEach(function(L){
+    if (L.removed) return;
     if (!L.passed && !L.dots) return;
     var st = trStore.stats[L.vid] || (trStore.stats[L.vid] = { runs: 0, clean: 0, fails: 0, lastFails: 0, last: 0 });
     st.runs++;
@@ -3201,11 +3272,13 @@ function trPersist() {
 function trRenderSummary() {
   var s = trSession;
   var el = document.getElementById('tr-sum-body');
-  var total = s.lines.length;
-  var passed = s.lines.filter(function(L){ return L.passed; }).length;
-  var missed = s.lines.filter(function(L){ return L.dots > 0; })
+  var active = s.lines.filter(function(L){ return !L.removed; });
+  var removedCt = s.lines.length - active.length;
+  var total = active.length;
+  var passed = active.filter(function(L){ return L.passed; }).length;
+  var missed = active.filter(function(L){ return L.dots > 0; })
     .sort(function(a, b){ return b.dots - a.dots; });
-  var clean = s.lines.filter(function(L){ return L.passed && !L.dots; }).length;
+  var clean = active.filter(function(L){ return L.passed && !L.dots; }).length;
   var acc = s.attempts ? Math.round(100 * s.correct / s.attempts) : 100;
   var secs = Math.max(1, Math.round((Date.now() - s.startedAt) / 1000));
   var dur = Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2);
@@ -3228,6 +3301,7 @@ function trRenderSummary() {
     });
   }
   if (clean) h += '<div class="summary" style="margin-top:8px">' + clean + ' line' + (clean === 1 ? '' : 's') + ' clean on the first pass ✓</div>';
+  if (removedCt) h += '<div class="summary" style="margin-top:4px">' + removedCt + ' line' + (removedCt === 1 ? '' : 's') + ' removed from the session</div>';
   el.innerHTML = h;
   document.getElementById('tr-again-missed').style.display = missed.length ? '' : 'none';
 }
@@ -3259,7 +3333,7 @@ function trResume() {
     renderSession();
     return;
   }
-  if (play.phase === 'redrill' && !play.rq.length) { trAdvance(); return; }
+  if (play.phase === 'redrill' && !play.rq.length) { trRedrillFinish(); return; }
   var upto = (play.phase === 'line') ? play.ply : play.rq[0];
   game = new Chess();
   for (var i = 0; i < upto; i++) game.move(L.moves[i]);
@@ -3337,11 +3411,11 @@ function trLineRef(L) {
   return { c: L.c, v: L.v, vid: L.vid, name: L.name, side: L.side, startPly: L.startPly || 0 };
 }
 document.getElementById('tr-again-missed').onclick = function(){
-  var items = trSession.lines.filter(function(L){ return L.dots > 0; }).map(trLineRef);
+  var items = trSession.lines.filter(function(L){ return !L.removed && L.dots > 0; }).map(trLineRef);
   if (items.length) trBegin(items);
 };
 document.getElementById('tr-again-all').onclick = function(){
-  var items = trSession.lines.map(trLineRef);
+  var items = trSession.lines.filter(function(L){ return !L.removed; }).map(trLineRef);
   if (items.length) trBegin(items);
 };
 document.getElementById('tr-new').onclick = function(){

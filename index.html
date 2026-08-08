@@ -189,6 +189,7 @@
         <div id="tr-ov-sub">&#9664; &#9654; replay the moves before you continue</div>
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
           <button id="tr-ov-next" class="primary">Next line &#9654;</button>
+          <button id="tr-ov-gotit" title="The miss didn't matter (e.g. a harmless move-order swap) &mdash; score this run as correct so the line doesn't come back">&#10003; Count as correct</button>
           <button id="tr-ov-repeat">&#8635; Repeat line</button>
           <button id="tr-ov-review">Review moves</button>
         </div>
@@ -3139,7 +3140,23 @@ function trShowOverlay(kind) {
   ic.textContent = amber ? '↻' : '✓';
   ic.style.color = amber ? '#e0a44a' : 'var(--accent)';
   document.getElementById('tr-ov-next').innerHTML = isLast ? 'Finish session &#9654;' : 'Next line &#9654;';
+  document.getElementById('tr-ov-gotit').style.display = (kind === 'fixed') ? '' : 'none';
   document.getElementById('tr-overlay').style.display = '';
+}
+// Override a miss verdict: the miss was harmless (move-order swap etc.) —
+// score this run as correct so the line doesn't cycle back.
+function trCountAsPassed() {
+  if (!trSession || trSession.done || !play || !play.review || play.reviewKind !== 'fixed') return;
+  var L = trSession.lines[play.li];
+  L.dots = Math.max(0, L.dots - 1);
+  var fx = trSession.failedNext.indexOf(play.li);
+  if (fx !== -1) trSession.failedNext.splice(fx, 1);
+  L.passed = true;
+  play.reviewKind = L.dots ? 'clean' : 'perfect';
+  renderSession();
+  setStatus('good', '✓ Counted as correct — it won\'t come back.');
+  trShowOverlay(play.reviewKind);
+  document.getElementById('tr-ov-msg').textContent = '✓ Counted as correct — it won\'t come back.';
 }
 function trHideOverlay() {
   document.getElementById('tr-overlay').style.display = 'none';
@@ -3405,6 +3422,7 @@ document.getElementById('tr-next').onclick = trNextFromReview;
 document.getElementById('tr-shufbtn').onclick = trShuffleSession;
 document.getElementById('tr-ov-next').onclick = trNextFromReview;
 document.getElementById('tr-ov-repeat').onclick = trRepeatLine;
+document.getElementById('tr-ov-gotit').onclick = trCountAsPassed;
 document.getElementById('tr-repeat').onclick = trRepeatLine;
 document.getElementById('tr-ov-review').onclick = function(){ trHideOverlay(); };
 function trLineRef(L) {

@@ -2083,7 +2083,7 @@ function buildBoard() {
       var file = flipped ? 7 - f : f;
       var name = FILES[file] + rank;
       var d = document.createElement('div');
-      d.className = 'sq ' + (((file + rank) % 2 === 1) ? 'light' : 'dark');
+      d.className = 'sq ' + (((file + rank) % 2 === 1) ? 'dark' : 'light');  // a1 (file 0 + rank 1 = odd) is dark
       d.dataset.sq = name;
       if (r === 7) { var cf = document.createElement('span'); cf.className = 'coord file'; cf.textContent = FILES[file]; d.appendChild(cf); }
       if (f === 0) { var cr = document.createElement('span'); cr.className = 'coord rank'; cr.textContent = rank; d.appendChild(cr); }

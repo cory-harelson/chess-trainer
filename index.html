@@ -2893,7 +2893,17 @@ function renderLineList() {
     rm.onclick = function(e){ e.stopPropagation(); trRemoveLine(i); };
     row.appendChild(rm);
     wrap.appendChild(row);
-    if (isCur) setTimeout(function(){ try { row.scrollIntoView({block:'nearest'}); } catch(e) {} }, 0);
+    // keep the current line visible in the side panel WITHOUT ever scrolling the
+    // page itself (scrollIntoView was yanking the whole screen down on mobile)
+    if (isCur) setTimeout(function(){
+      try {
+        var box = document.getElementById('panel');
+        if (!box || box.scrollHeight <= box.clientHeight + 4) return; // panel not scrollable (mobile) — leave the page alone
+        var r = row.getBoundingClientRect(), b = box.getBoundingClientRect();
+        if (r.top < b.top) box.scrollTop += r.top - b.top;
+        else if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom;
+      } catch(e) {}
+    }, 0);
   });
 }
 function renderSession() { renderSessHead(); renderLineList(); }

@@ -9,6 +9,9 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
+  /* Kill Chrome's own edge-swipe back-nav + pull-to-refresh inside the app.
+     (The Android SYSTEM back gesture is handled by the history trap in JS.) */
+  html, body { overscroll-behavior: none; }
   :root {
     --bg: #262421;
     --panel: #302e2c;
@@ -2532,6 +2535,71 @@ var trStore = (function(){
 })();
 function trSave() { try { localStorage.setItem(TR_LS, JSON.stringify(trStore)); } catch(e) {} }
 
+// ----- live-session persistence (survives Android killing the backgrounded tab) -----
+var TR_SS = 'cce_session_v1';
+function trSnapSave() {
+  try {
+    if (!trSession || trSession.done) { localStorage.removeItem(TR_SS); return; }
+    var snap = {
+      lines: trSession.lines.map(function(L){
+        return { c: L.c, v: L.v, vid: L.vid, name: L.name, side: L.side,
+                 startPly: L.startPly || 0, dots: L.dots || 0,
+                 passed: !!L.passed, removed: !!L.removed };
+      }),
+      queue: trSession.queue.slice(),
+      failedNext: trSession.failedNext.slice(),
+      cycle: trSession.cycle, curLi: trSession.curLi,
+      attempts: trSession.attempts, correct: trSession.correct,
+      startedAt: trSession.startedAt,
+      curReview: !!(play && play.review)   // scoring already applied by review time
+    };
+    localStorage.setItem(TR_SS, JSON.stringify(snap));
+  } catch(e) {}
+}
+function trTryRestore() {
+  var snap = null;
+  try { snap = JSON.parse(localStorage.getItem(TR_SS)); } catch(e) {}
+  if (!snap || !snap.lines || !snap.lines.length) return false;
+  var lines = [];
+  for (var i = 0; i < snap.lines.length; i++) {
+    var L = snap.lines[i];
+    var course = DB.courses[L.c];
+    var vv = course && course.variations && course.variations[L.v];
+    if (!vv || vv.id !== L.vid || !vv.moves || vv.moves.length < 2) {
+      // DB changed underneath the snapshot — safest is to drop it
+      try { localStorage.removeItem(TR_SS); } catch(e) {}
+      return false;
+    }
+    lines.push({ c: L.c, v: L.v, vid: L.vid, name: L.name, moves: vv.moves, side: L.side,
+                 startPly: Math.min(L.startPly || 0, vv.moves.length - 1),
+                 course: course.name, dots: L.dots || 0,
+                 passed: !!L.passed, removed: !!L.removed });
+  }
+  trSession = {
+    lines: lines,
+    queue: (snap.queue || []).slice(),
+    failedNext: (snap.failedNext || []).slice(),
+    cycle: snap.cycle || 1, curLi: -1,
+    attempts: snap.attempts || 0, correct: snap.correct || 0,
+    done: false, saved: false,
+    startedAt: snap.startedAt || Date.now(), endedEarly: false
+  };
+  // If we died mid-line (unscored attempt), put that line back at the FRONT of
+  // the queue. Then switchTab → trOnTabChange → trResume → trAdvance drives the
+  // normal flow (play is null, so it advances into our re-queued line). If we
+  // died on the review overlay, the line was already scored — just advance.
+  var cur = snap.curLi;
+  var midLine = (cur >= 0 && lines[cur] && !lines[cur].passed && !lines[cur].removed && !snap.curReview);
+  if (midLine && trSession.queue.indexOf(cur) === -1) trSession.queue.unshift(cur);
+  switchTab('trainer');
+  setStatus('', midLine ? '↻ Session restored — replaying the line you were on.'
+                        : '↻ Session restored.');
+  return true;
+}
+// snapshot exactly when Android backgrounds/hides the app — the moment kill risk starts
+document.addEventListener('visibilitychange', function(){ if (document.hidden) trSnapSave(); });
+window.addEventListener('pagehide', trSnapSave);
+
 // ----- chapter inference (mirrors chess.com course sections) -----
 function trComputeChapters(course) {
   // explicit chapter data (real chess.com structure) wins over inference
@@ -2973,6 +3041,7 @@ function trPlayLine(li) {
   renderPosition(); renderMoveStrip();
   renderSession();
   setStatus('', startPly ? 'Picking up mid-line — get ready…' : 'Get ready…');
+  trSnapSave();
   later(450, trMaybeOpponent);
 }
 function trApply(san, cls, noAnim) {
@@ -3181,6 +3250,7 @@ function trEnterReview(kind) {
   play.review = true;
   play.reviewKind = kind;
   play.lock = true;
+  trSnapSave();
   trUpdateControls();
   var good = (kind === 'perfect' || kind === 'clean' || kind === 'practice-clean');
   setStatus(good ? 'good' : '',
@@ -3280,6 +3350,7 @@ function trFinish(early) {
   trSession.done = true;
   trSession.curLi = -1;
   trSession.endedEarly = !!early;
+  trSnapSave();   // done → clears the saved snapshot
   trPersist();
   trRenderSummary();
   trShowView('summary');
@@ -3453,6 +3524,7 @@ document.getElementById('tr-again-all').onclick = function(){
 document.getElementById('tr-new').onclick = function(){
   trTok++;
   trSession = null; play = null;
+  trSnapSave();   // no session → clears the saved snapshot
   trShowView('picker');
   trRenderPicker();
 };
@@ -3468,8 +3540,20 @@ setTimeout(function(){
   buildIndex();
   document.getElementById('loading').style.display = 'none';
   renderMatches();
+  trTryRestore();
   window.CCE_READY = true;
 }, 30);
+
+// ---------- Android back-gesture trap ----------
+// The system edge-swipe = history.back(). With no history the PWA closes.
+// Keep a sentinel entry and re-push it whenever it gets popped, so an
+// accidental edge-swipe while dragging a piece does nothing.
+try {
+  history.pushState({ cce: 1 }, '');
+  window.addEventListener('popstate', function(){
+    try { history.pushState({ cce: 1 }, ''); } catch(e) {}
+  });
+} catch(e) {}
 
 // small API for scripting/debugging
 window.CCE = {

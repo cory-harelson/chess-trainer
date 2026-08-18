@@ -108,15 +108,20 @@ Black Lion dropped 337 → 332. **This is rule #1 and #3 in action.** Recovered 
 
 ## SHIPPING (the path that works)
 
-`git push` is denied from Claude sessions and `file_upload` no longer accepts container
-paths. The working method:
+`git push` is denied from Claude sessions. The working method:
 
-1. Open `https://github.com/cory-harelson/chess-trainer/upload/main` in Claude in Chrome
-2. Have the *page* build the file — `fetch()` the raw base from
-   `raw.githubusercontent.com`, apply changes in page context, `new File([out], ...)`
-3. Attach via `DataTransfer` → `input.files` → dispatch `change`
+1. Write the finished file(s) to `/mnt/user-data/outputs/` in the container.
+2. Open `https://github.com/cory-harelson/chess-trainer/upload/main` in Claude in Chrome.
+3. `find` the "Choose your files" file input, then `file_upload` with the container paths.
+   **This works** — `/mnt/user-data/outputs/...` is an allowed path (verified 2026-08-18,
+   both `index.html` and `BUILD_LOG.md` in one call). The earlier note that `file_upload`
+   rejects container paths was wrong; you do NOT need the in-page `fetch` + `DataTransfer`
+   dance. Keep that as a fallback only if the upload tool ever refuses.
 4. Fill the commit summary and submit via `find` + ref (coordinate clicks miss — the
-   page shifts). If the form reappears empty, re-enter the message and submit again.
+   page shifts). **The first submit reliably clears the message field without committing
+   while keeping the files attached** — re-enter the message and submit again.
 5. Confirm with the commits atom feed
    (`https://github.com/cory-harelson/chess-trainer/commits/main.atom` — no API rate
-   limit) and then curl the live site.
+   limit), then verify the live site. Note: fetching `cory-harelson.github.io` from a
+   `github.com` page fails CORS — navigate the tab to the live URL and read
+   `window.COURSES_DB` in page context instead.

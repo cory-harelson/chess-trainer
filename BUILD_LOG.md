@@ -31,17 +31,20 @@ Fetch it directly:
 
 5. **Validate before shipping.** Replay every non-partial line through chess.js /
    python-chess: zero illegal moves, zero non-canonical SANs. Current baseline is
-   1,374 lines, 0 errors.
+   1,893 lines, 0 errors (`chess` pip package fails to build in the cloud container —
+   extract the embedded chess.js from `index.html` and replay with node instead).
 
 ---
 
-## CURRENT STATE — 2026-08-15
+## CURRENT STATE — 2026-08-18
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `2d7a2a6` · `index.html` = 558,637 bytes
-- Validation: 1,374 lines replayed, 0 errors
+- HEAD: `<this commit>` · `index.html` = 723,949 bytes
+- Validation: 1,893 lines replayed, 0 illegal moves, 0 non-canonical SANs, 0 unresolved
+  chapter refs. (The 1,374 figure in the 2026-08-15 log counted one 1-move line that the
+  trainer itself skips; under the current script the pre-merge baseline is 1,373.)
 
-**Courses (4):**
+**Courses (5):**
 
 | Course | Variations | Chapters |
 |---|---|---|
@@ -49,6 +52,7 @@ Fetch it directly:
 | The Black Lion (Simon Williams) | 337 | heuristic |
 | Black is Back: Old Benoni | 101 | heuristic |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
+| Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
 
 **Features present in `index.html`:**
 
@@ -63,9 +67,23 @@ Fetch it directly:
   The 34 `3...e5 4.dxe5` queen-trade lines keep Simon's original order (they cannot
   transpose) and remain fully trainable.
 
----
-
 ## CHANGE LOG (newest first)
+
+### 2026-08-18 — added Lifetime Repertoires: Stonewall Dutch (520 sections)
+
+GM Simon Williams, Black. Extracted via the Connect-RPC protocol in the playbook
+(`GetCourseLearningSession` → 520 `lessonsHeaders` + 27 chapters, then
+`GetCourseTrainingForLearning` per variation, 6-way concurrency, 0 fetch errors).
+Shipped with explicit `chapters` + per-variation `chapterId` — chapter runs are
+contiguous and in chess.com display order, all 27 resolve, no "Other" bucket.
+`info: true` on the 36 `INFORMATIONAL` sections; the 69 `ALTERNATIVE` sections are
+trainable like normal lessons. No partial lines — all 520 start from the initial
+position. Validation: every ply replayed through the embedded chess.js and every
+resulting FEN compared to chess.com's own per-ply FEN — 13,311 plies, 0 mismatches.
+Canonicalized 5 SANs chess.com over-specified: 4× `Nge2`→`Ne2` (2.Nc3 Anti-Dutch lines)
+and 1 missing mate suffix `Rh1`→`Rh1#` (Jaskolka–Howell model game).
+Base verified against the live raw file by SHA-256 before merging (rule #1); the splice
+is purely additive — the pre-existing 416,890-byte `COURSES_DB` text is byte-identical.
 
 ### 2026-08-15 · `2d7a2a6` — restore + transpose
 Rebuilt from `c66c306` (last good version), ported the line-notes/flag feature forward

@@ -36,10 +36,10 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-18
+## CURRENT STATE — 2026-08-21
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 723,949 bytes
+- HEAD: `<this commit>` · `index.html` = 724,466 bytes
 - Validation: 1,893 lines replayed, 0 illegal moves, 0 non-canonical SANs, 0 unresolved
   chapter refs. (The 1,374 figure in the 2026-08-15 log counted one 1-move line that the
   trainer itself skips; under the current script the pre-merge baseline is 1,373.)
@@ -56,7 +56,8 @@ Fetch it directly:
 
 **Features present in `index.html`:**
 
-- Line notes + `flag: "skip"` annotations (10 flagged Risky Lion lines vs 8.b3)
+- Line notes + `flag: "skip"` annotations — 13 notes total: 10 flagged Risky Lion lines
+  vs 8.b3, plus 3 Stonewall Dutch move-order notes (2b, 8...h6 before ...e5)
 - Explicit chapter support — `course.chapters` + per-variation `chapterId` wins over
   the legacy name-pattern heuristic
 - Live-session persistence — `visibilitychange` / `pagehide` snapshot to localStorage,
@@ -68,6 +69,36 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-21 — Stonewall Dutch 2b move-order notes (3 notes, no move changes)
+
+Cory's ask: one answer per position when drilling. The 2b Bg5 line
+(1.d4 f5 2.c4 e6 3.Nc3 Nf6 4.Bg5 Bb4 5.e3 Bxc3+ 6.bxc3 O-O 7.Bd3 d6 8.Ne2) appears
+twice in the Quickstarter under the *same title*, diverging only at black's 8th move —
+8...e5 vs 8...h6 — from an identical position, which made it unlearnable.
+Stockfish 24: 8...h6 −0.03 vs 8...e5 −0.15; 8...e5 allows 9.c5! (+0.24), white's only
+good idea, resolving his doubled c-pawns after cxd6 cxd6. The h6 insert
+(9.Bxf6 Qxf6) puts the queen on f6 so ...dxc5 / dxe5 is met by Qxe5.
+
+Annotated (no moves touched):
+- `9a98b9fb` Quickstarter 2b 8...e5 → note + `flag:"skip"`
+- `2bb285e0` chapter "2.c4 e6 3.Nc3 Nf6 4.Bg5 #1" (same 8...e5 order) → note + `flag:"skip"`
+- `70704c47` Quickstarter 2b 8...h6 → "PREFERRED move order" note
+
+Base verified by SHA-256 against the live raw file before editing (rule #1): 723,949
+bytes / `7300c19aada5ca95aee5…`, matched the clone exactly. The splice is purely
+additive — three `,"note":…[,"flag":"skip"]` fragments inserted before the closing brace
+of three variation objects; stripping those fragments back out reproduces the previous
+file character-for-character. Validation: 1,894 non-partial lines replayed strictly
+through the embedded chess.js — 0 illegal, 0 non-canonical, 32 partials, 678 chapterId
+refs all resolving, notes 10 → 13. No other field changed.
+
+NOTE for whoever ships the next change: `flag:"skip"` is cosmetic only — it strikes the
+line through in the browser/picker lists but the trainer still serves it. Cory wants
+flagged lines actually excluded from the training pool by default; that needs a code
+change in the pool filters (`trRenderPicker` / the two `tr-include-info` filters around
+lines 2716-2880), treating `flag === 'skip'` like `info`. Not done here — flagged as the
+next candidate.
 
 ### 2026-08-18 — added Lifetime Repertoires: Stonewall Dutch (520 sections)
 

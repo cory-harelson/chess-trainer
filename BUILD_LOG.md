@@ -36,21 +36,20 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-21
+## CURRENT STATE — 2026-08-22
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 724,466 bytes
-- Validation: 1,893 lines replayed, 0 illegal moves, 0 non-canonical SANs, 0 unresolved
-  chapter refs. (The 1,374 figure in the 2026-08-15 log counted one 1-move line that the
-  trainer itself skips; under the current script the pre-merge baseline is 1,373.)
+- HEAD: `<this commit>` · `index.html` = 794,561 bytes
+- Validation: 1,894 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 1,921 chapterId refs, all resolving; 32 partials.
 
-**Courses (5):**
+**Courses (5) — ALL now use explicit chess.com chapter structure:**
 
 | Course | Variations | Chapters |
 |---|---|---|
-| The Iron English: Botvinnik Variation | 810 | heuristic |
-| The Black Lion (Simon Williams) | 337 | heuristic |
-| Black is Back: Old Benoni | 101 | heuristic |
+| The Iron English: Botvinnik Variation | 810 | explicit (32) |
+| The Black Lion (Simon Williams) | 337 | explicit (29) + 5 added → "Added lines" |
+| Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
 
@@ -69,6 +68,41 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-22 — real chess.com chapters for the 3 legacy courses + picker starts fully collapsed
+
+Cory's ask (two items): (1) course subsections in the trainer picker must match the real
+chess.com course structure — the legacy heuristic lumped e.g. all of Old Benoni's theory
+into one "Theory" bucket and merged Iron English's 1A/1B/1C sub-chapters; (2) the picker
+should open with EVERYTHING collapsed (it previously default-expanded all course headers).
+
+Changes:
+- Fetched real chapter structure for Iron English Botvinnik (32 ch), The Black Lion
+  (29 ch), Old Benoni (12 ch) via `GetCourseLearningSession` and spliced
+  `"chapters":[…]` + per-variation `"chapterId"` into `COURSES_DB` — purely additive
+  (1,246 insertions, +70,066 bytes; stripping them reproduces the previous DB exactly;
+  the two code edits below add the other 29 bytes of the 724,466 → 794,561 delta).
+  100% of non-added variation ids matched lessonsHeaders ids; info flags agree 100%.
+- `trComputeChapters()` explicit branch now routes `v.added` lines to "Added lines"
+  (Black Lion's 5 analysis-board lines have no chess.com chapterId).
+- Picker course headers now default collapsed: `mkHdr('tr-chdr', …, defOpen)` call
+  changed `true` → `false` (~line 2884). Search / position filter still force-expand.
+- No moves, names, notes, or flags touched. Old heuristic code left in place (dead for
+  these 5 courses, still the fallback for any future course without chapter data).
+
+**Extraction gotcha UPDATE (supersedes the JWT/iframe dance for this endpoint):**
+`GetCourseLearningSession` now works with plain cookie auth from any chess.com page —
+`fetch(RPC, {method:'POST', credentials:'include', headers:{'content-type':
+'application/json','connect-protocol-version':'1'}, body:{contextType:'moveTrainer',
+contextId:<courseUuid>}})`. No authorization header needed; a captured-but-stale JWT
+actively CAUSES 401 "Invalid JWT Token". The iframe fetch-patch capture may still be
+needed for `GetCourseTrainingForLearning` (untested today).
+
+Base verified per rule #1: live raw = 724,466 bytes / sha256 `1189c8cf4c703207…`,
+byte-identical to the clone. Validation: 1,894 non-partial lines replayed strictly, 0
+illegal, 0 non-canonical; 1,921 chapterId refs all resolve; Playwright UI pass (5
+collapsed course rows on load; Old Benoni 12 / Iron English 32 / Black Lion 29+Added
+chapters render; search expand + re-collapse; drill smoke test clean).
 
 ### 2026-08-21 — Stonewall Dutch 2b move-order notes (3 notes, no move changes)
 

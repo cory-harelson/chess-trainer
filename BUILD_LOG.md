@@ -36,14 +36,14 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-22
+## CURRENT STATE — 2026-08-23
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 794,561 bytes
-- Validation: 1,894 non-partial lines replayed strictly through the embedded chess.js —
-  0 illegal moves, 0 non-canonical SANs; 1,921 chapterId refs, all resolving; 32 partials.
+- HEAD: `<this commit>` · `index.html` = 828,081 bytes
+- Validation: 1,948 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 1,975 chapterId refs, all resolving; 32 partials.
 
-**Courses (5) — ALL now use explicit chess.com chapter structure:**
+**Courses (6) — ALL use explicit chapter structure:**
 
 | Course | Variations | Chapters |
 |---|---|---|
@@ -52,6 +52,7 @@ Fetch it directly:
 | Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
+| Cory's Custom Study Lines (all `added:true`, site:"custom") | 54 | explicit (2) |
 
 **Features present in `index.html`:**
 
@@ -68,6 +69,35 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-23 — NEW COURSE: "Cory's Custom Study Lines" (54 lines, 2 chapters, purely additive)
+
+Cory's personal drill repertoire — derived lines only, **no original course content
+edited**. All 54 variations are `added:true`, `site:"custom"`, each with `source`, a
+`link` back to the source variation on chess.com where derived, and `note` explaining
+the derivation. Spliced additively before the closing `]}` of `COURSES_DB`
+(pre-existing text byte-identical; stripping the 6th course reproduces the old DB).
+
+**Ch.1 "Black Lion Main Line — Early h6" (33):** every Williams Risky Lion standard-setup
+line with Black's setup reordered to h6→c6→Be7→Qc7 (26 lines, final positions
+FEN-identical to Williams's — engine-verified at every intermediate node, SF16 d18-22;
+no White deviation exceeds his normal +0.5, all Bxf7+/Ng5/Bg5 sacs lose). 6 Williams
+lines are unreachable in this order (8.Bg5/8.Ng5 hang to hxg5) — deleted by design,
+documented in the chapter's info line. The 8 Risky-vs-b3 lines (already flag:"skip" in
+the Black Lion course) are replaced by 3 engine-built Tame conversions: castle, ...a6,
+...Re8, ...Bf8, then react (immediate ...b6 is 0.5-0.9 worse here — d5!/dxe5 tricks;
+final evals 0.00/+0.02/+0.32). Plus 3 verbatim Canty 6.dxe5 guard lines (the one tax
+of early h6: 7.Bxf7+ Kxf7 8.Nxe5+ trick).
+
+**Ch.2 "Canty 5th-Move Sidelines — Bishop First" (21):** all of Madman's Philidor Ch.2;
+4 lines with consecutive ...Qc7/...Be7 swapped to bishop-first (5.dxe5 #1/#2/#3/#7 —
+transpose exactly, swap nodes engine-clean); 5.d5 #2 drilled as 9...Nf8 before ...g5
+(engine: +0.65 vs +0.92 — course order gives White 10.a5 free); rest verbatim.
+NOTE: bishop-first is Ch.2-only — in the Shirov Gambit chapter ...Be7-first loses
+material (-1.9); do not generalize.
+
+Validation: 54/54 strict chess.js replay clean in the live file's own engine; all
+chapterIds resolve; courses 1-5 untouched (deep-equal verified pre/post splice).
 
 ### 2026-08-22 — real chess.com chapters for the 3 legacy courses + picker starts fully collapsed
 

@@ -39,9 +39,9 @@ Fetch it directly:
 ## CURRENT STATE — 2026-08-23 (rev 2)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 840,918 bytes
-- Validation: 1,972 non-partial lines replayed strictly through the embedded chess.js —
-  0 illegal moves, 0 non-canonical SANs; 1,999 chapterId refs, all resolving; 32 partials.
+- HEAD: `<this commit>` · `index.html` = 855,403 bytes
+- Validation: 2,002 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 2,029 chapterId refs, all resolving; 32 partials.
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -52,7 +52,7 @@ Fetch it directly:
 | Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
-| Cory's Custom Study Lines (all `added:true`, site:"custom") | 78 | explicit (4) |
+| Cory's Custom Study Lines (all `added:true`, site:"custom") | 108 | explicit (5) |
 
 **Features present in `index.html`:**
 
@@ -69,6 +69,16 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-23 (rev 4) — custom course: +chapter "Early Sidelines — Unique Coverage" (30 lines)
+
+Sidelines only ONE course covers, imported verbatim into the custom course so Cory's
+whole repertoire lives in one place: Canty's 2.d3 (10 — Williams has none), Williams's
+3.Bd3 / 3.f3 (5 + overview deduped), Williams's 2.Nf3/3.Bc4 sideline (5, added-lines with
+their own analysis links, preserved), Williams's 4.Be3/f3 setups (10, overview deduped).
+Cross-coverage verified programmatically (the other course has 0 lines for each; Canty's
+only 2.Nf3 hit is an info model game). Custom course 78 → 108 variations, 4 → 5 chapters;
+courses 1-5 deep-equal, only the custom-course span changed.
 
 ### 2026-08-23 (rev 3) — custom course: +2 chapters (Canty Shirov, Williams 2.f4)
 

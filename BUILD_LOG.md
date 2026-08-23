@@ -39,9 +39,9 @@ Fetch it directly:
 ## CURRENT STATE — 2026-08-23 (rev 2)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 829,090 bytes
-- Validation: 1,948 non-partial lines replayed strictly through the embedded chess.js —
-  0 illegal moves, 0 non-canonical SANs; 1,975 chapterId refs, all resolving; 32 partials.
+- HEAD: `<this commit>` · `index.html` = 840,918 bytes
+- Validation: 1,972 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 1,999 chapterId refs, all resolving; 32 partials.
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -52,7 +52,7 @@ Fetch it directly:
 | Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
-| Cory's Custom Study Lines (all `added:true`, site:"custom") | 54 | explicit (2) |
+| Cory's Custom Study Lines (all `added:true`, site:"custom") | 78 | explicit (4) |
 
 **Features present in `index.html`:**
 
@@ -69,6 +69,16 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-23 (rev 3) — custom course: +2 chapters (Canty Shirov, Williams 2.f4)
+
+Ch.3 "Canty Shirov Gambit (5.g4)": all 14 Philidor Ch.3 lines verbatim; one line carries
+a QUEEN-FIRST warning note (the bishop-first habit loses ~1.9 in the Shirov — do not
+generalize it there). Ch.4 "Williams vs 2.f4 (2...d5!)": Williams's 10 unique 2.f4 lines
+verbatim (quickstarter / Theory Overview / Theory #10 were move-identical — deduped to
+one). Note: Williams answers 2.f4 with 2...d5 while Canty's Philidor Ch.7 plays 2...e5 —
+Cory drills Williams's system. Custom course 54 → 78 variations, 2 → 4 chapters; only
+the 6th course's JSON span changed, courses 1-5 deep-equal verified.
 
 ### 2026-08-23 (later) — custom course Ch.2: g5-first policy (Cory's h4-bishop rule)
 

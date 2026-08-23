@@ -39,9 +39,9 @@ Fetch it directly:
 ## CURRENT STATE — 2026-08-23 (rev 2)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 855,403 bytes
-- Validation: 2,002 non-partial lines replayed strictly through the embedded chess.js —
-  0 illegal moves, 0 non-canonical SANs; 2,029 chapterId refs, all resolving; 32 partials.
+- HEAD: `<this commit>` · `index.html` = 877,200 bytes
+- Validation: 2,026 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 2,053 chapterId refs, all resolving; 32 partials.
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -52,7 +52,7 @@ Fetch it directly:
 | Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
-| Cory's Custom Study Lines (all `added:true`, site:"custom") | 108 | explicit (5) |
+| Cory's Custom Study Lines (all `added:true`, site:"custom") | 132 | explicit (5) |
 
 **Features present in `index.html`:**
 
@@ -69,6 +69,19 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-23 (rev 5) — custom Ch.1: the Nh4 jump + the 9.Be3 regroup (+24 lines)
+
+Filled the two gaps the Canty-vs-custom position scan found. (1) Canty's 9.Nh4 block
+(11 lines, setup reordered, FEN-identical) — knight to h4 before ...g5 → 9...exd4! then
+...Ne5, queens on. (2) Canty's 9.Be3 block (10 lines) — no h3 hook means the g5/g4 kick
+fails (engine: 9...Nf8 +0.64 vs 9...g5 +1.15; Cory's g5-then-exd4/Ne5 idea tested and
+rejected, no tactic but ~0.5 worse) — the ONE exception to g5-first. (3) 6.Be3 door:
+Canty's #2 imported (h3-hook g5 line); Canty's #1 (9...Nb6 roundabout) NOT imported —
+it only works in his interleaving; in Cory's order 8...exd4 is 66cp better, replaced by
+an engine-built line (+0.07). (4) Two engine-built 8.Nh4 lines for Cory's exact order
+(main stem +0.34, Be3 door +0.07), builder tolerance 35cp, White moves scripted.
+Custom course 108 → 132; chapter info line now carries the NH4 and BE3 rules.
 
 ### 2026-08-23 (rev 4) — custom course: +chapter "Early Sidelines — Unique Coverage" (30 lines)
 

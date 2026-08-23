@@ -36,10 +36,10 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-23
+## CURRENT STATE — 2026-08-23 (rev 2)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 828,081 bytes
+- HEAD: `<this commit>` · `index.html` = 829,090 bytes
 - Validation: 1,948 non-partial lines replayed strictly through the embedded chess.js —
   0 illegal moves, 0 non-canonical SANs; 1,975 chapterId refs, all resolving; 32 partials.
 
@@ -69,6 +69,18 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-23 (later) — custom course Ch.2: g5-first policy (Cory's h4-bishop rule)
+
+Cory's rule for the Nf8-vs-g5 order in "Canty 5th-Move Sidelines": **if White's dark
+bishop was kicked to h4, ...Nf8 comes first; otherwise ...g5 first** (Simon's order —
+keeps the knight out of h4), unless g5-first is a blunder. Applied to the custom course
+only (Canty originals untouched): 5.Bd3, 5.d5 #1, 5.d5 #3 swapped to g5-first
+(engine costs −0.44 i.e. IMPROVEMENT, +0.10, +0.38 — no tactics, all FEN-identical
+transpositions, hxg5-hang guard clean); 5.d5 #2 reverted to Canty verbatim (the earlier
+Nf8-first fix is superseded by this rule). Bishop-on-h4 lines keep Nf8-first: 5.Be2,
+5.Bg5, 5.dxe5 #3. Only the 6th course's JSON span changed — courses 1-5 byte-identical
+(deep-equal verified).
 
 ### 2026-08-23 — NEW COURSE: "Cory's Custom Study Lines" (54 lines, 2 chapters, purely additive)
 

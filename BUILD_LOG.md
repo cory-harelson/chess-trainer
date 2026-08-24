@@ -36,15 +36,16 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-24 (rev 10)
+## CURRENT STATE — 2026-08-24 (rev 11)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 930,237 bytes
-- Validation: 2,116 non-partial lines replayed strictly through the embedded chess.js —
-  0 illegal moves, 0 non-canonical SANs; 2,143 chapterId refs, all resolving; 32 partials;
+- HEAD: `<this commit>` · `index.html` = 930,685 bytes
+- Validation: 2,115 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 2,142 chapterId refs, all resolving; 32 partials;
   0 prefix/exact duplicates within the custom course's non-Quickstarter chapters AND
   within the Quickstarter itself; every Quickstarter line = its parent's full move list
   (31/31, `source: "Quickstarter — same line as '<parent>'"`, link identical to parent's).
+- Custom course: 221 variations / 11 chapters (Unique Coverage 29).
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -76,6 +77,46 @@ Fetch it directly:
   line from the matches panel or All Sections (jumpStack snapshots, explorer tab only)
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-24 (rev 11) — 3.Bc4 family REPLACED with Cory's Nxe4! analysis + Bxg5-sac note
+
+Cory reviewed the old 3.Bc4 lines (rev 4 imports of the 3...e5-based analysis-collection
+lines) and rejected them as unsound: **3.Bc4? simply hangs the e4 pawn — 3...Nxe4! —**
+and the e4-knight covers g5, killing the Ng5/f7 ideas the old lines were built around.
+He supplied a PGN of his own analysis (3 lines); every node was verified with Stockfish
+16 at depth 22-24 in the container (`apt-get install stockfish` works; binary lands at
+`/usr/games/stockfish`):
+- After 3.Bc4, engine best IS 3...Nxe4 (-0.95); after 4.d3 Nf6 5.Ng5, best IS 5...d5
+  (-1.9); at every White branch point the engine's best move is exactly the branch
+  Cory's lines cover (7.Nf3 / 7.f3, 8.f4 / 8.O-O).
+- His 10...Nxg4! sac vs 7.Nf3 is the engine's top line throughout (final -2.7).
+- CRITICAL GAP the PGN didn't cover, engine-checked and added as a 4th line:
+  **4.Bxf7+? Kxf7 5.Ng5+ Nxg5! wins a whole piece** (-5.4) — the fork trick fails
+  because the e4-knight guards g5.
+
+Changes (226→…→221 variations):
+- Unique Coverage: 5 old "3.Bc4 #1-5" lines DELETED (in-slot), replaced by 4 new ones
+  (new ids): #1 Nxe4! main 7.f3 (16p) · #2 7.Nf3 Nxg4! (24p) · #3 8.O-O Bxh3! (19p) ·
+  #4 4.Bxf7+? Nxg5! (16p, engine-built). Sources: "Cory's analysis 2026-08-24,
+  SF16-d24 verified"; links → his chess.com analysis collection (same collection as
+  before — he updated it). Notes carry evals + plans. Chapter 30 → 29 lines.
+- Quickstarter: "3.Bc4 — the exd3! trap" swapped in-slot for "3.Bc4 — Nxe4! free pawn"
+  (new id, full copy of new #1 per the rev 10 convention).
+- The old five e5-based lines REMAIN in the Black Lion course's "Added lines" bucket
+  (they are pre-custom-course bolt-ons, not Williams course content) — flagged to Cory
+  for possible removal, not touched here.
+- **Bxg5-sac note upgraded** (QS "dxe5 mid-storm — the Bxg5 sac is fine" + parent
+  "8.Qe2 #6"): Cory asked whose sac and why the line ends with his king exposed.
+  Engine answer baked into the note: it's WHITE's piece sac (11.Bxg5!? hxg5 12.Nxg5);
+  Black takes everything, meets Bxf7+ with 13...Kf8!, trades the attacker with
+  14...Nh7!, ends bishop-vs-three-pawns up with the attack spent (SF16 d24: -1.1);
+  plan after the line ends: ...Bf7!, ...Kg8 castling by hand, then convert. Moves
+  untouched (the line still mirrors course Theory #16 exactly).
+
+Validation: 2,115 non-partial strict replay clean; 2,142 chapter refs resolve; courses
+1-5 deep-equal; QS==parent 31/31; 0 dups (QS-internal and non-QS); Playwright boot +
+rendered All Sections check (new family renders, 5 lines match the post-Nxe4 position);
+only intended objects changed (asserted per-id). Base: built on `5a19bad`.
 
 ### 2026-08-24 (rev 10) — Quickstarter lines extended to full length + 3.Bc4 "why" note
 

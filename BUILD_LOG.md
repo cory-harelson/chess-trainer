@@ -39,9 +39,9 @@ Fetch it directly:
 ## CURRENT STATE — 2026-08-23 (rev 2)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 891,885 bytes
-- Validation: 2,054 non-partial lines replayed strictly through the embedded chess.js —
-  0 illegal moves, 0 non-canonical SANs; 2,081 chapterId refs, all resolving; 32 partials.
+- HEAD: `<this commit>` · `index.html` = 925,904 bytes
+- Validation: 2,120 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 2,147 chapterId refs, all resolving; 32 partials.
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -52,7 +52,7 @@ Fetch it directly:
 | Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
-| Cory's Custom Study Lines (all `added:true`, site:"custom") | 160 | explicit (8) |
+| Cory's Custom Study Lines (all `added:true`, site:"custom") | 226 | explicit (11) |
 
 **Features present in `index.html`:**
 
@@ -69,6 +69,22 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-23 (rev 7) — coverage complete: 4.f4 (Williams) + 4.g4 & 4.g3 (Canty)
+
+Position-level audit of all 495 source-course lines vs the custom course found exactly
+three uncovered White systems; Cory picked sources and all three are now in (verbatim,
+no transforms needed — all deviate before the move-5 setup):
+- **Black Lion 6: 4.f4 (Williams)** (46): 5.fxe5 #1-6 (Qxd8+ endgame lines), 6.Qxd4
+  #1-34 (the main battleground), 6.Nxd4 #1-7. One move-identical dup removed.
+- **Black Lion 7: 4.g4 — b5! Counter (Canty)** (10): the 4...h6/5...e5/6...b5! counter-
+  gambit (7.Nxb5, 7.a3, 7.Bg2 answers).
+- **Black Lion 8: 4.g3 Fianchetto (Canty)** (7): chosen over Williams per engine
+  comparison — identical repertoires vs 5.Nf3, Canty's ...h5!-h4 crash vs 5.Nge2.
+Plus 3 new Quickstarter lines (one per system). 160 → 226 variations, 8 → 11 chapters;
+courses 1-5 deep-equal. Every White system in either source course is now either in the
+custom course or deliberately excluded (Williams 3...e5 queen-trade order, full Tame
+setup, Canty's 2...e5 vs 2.f4).
 
 ### 2026-08-23 (rev 6) — custom course reorganized into 8 chapters + Quickstarter Guide
 

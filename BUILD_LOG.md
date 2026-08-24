@@ -39,9 +39,9 @@ Fetch it directly:
 ## CURRENT STATE — 2026-08-23 (rev 2)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 877,200 bytes
-- Validation: 2,026 non-partial lines replayed strictly through the embedded chess.js —
-  0 illegal moves, 0 non-canonical SANs; 2,053 chapterId refs, all resolving; 32 partials.
+- HEAD: `<this commit>` · `index.html` = 891,885 bytes
+- Validation: 2,054 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 2,081 chapterId refs, all resolving; 32 partials.
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -52,7 +52,7 @@ Fetch it directly:
 | Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
-| Cory's Custom Study Lines (all `added:true`, site:"custom") | 132 | explicit (5) |
+| Cory's Custom Study Lines (all `added:true`, site:"custom") | 160 | explicit (8) |
 
 **Features present in `index.html`:**
 
@@ -69,6 +69,23 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-23 (rev 6) — custom course reorganized into 8 chapters + Quickstarter Guide
+
+Restructured per Cory's ask. ALL existing variation ids preserved (training stats survive;
+only names + chapterIds changed). New chapter layout: Quickstarter Guide (29 incl. the
+read-me info line) · Black Lion 1: Main Line Storm (30) · Black Lion 2: Nh4 Jump — Take
+d4 (13) · Black Lion 3: Be3 Regroup & b3 Tame (13) · Black Lion 4: 5th-Move Sidelines
+(21) · Black Lion 5: Shirov Gambit (14) · Sidelines: 2.f4 (10) · Sidelines: Unique
+Coverage (30). Lines renamed to "<system> #N" style so trGkey groups them into clean
+picker subsections (e.g. 8.h3 #1-10, 8.Qe2 #1-6, 9.Nh4 #1-11).
+
+Quickstarter (28 trainable, 20-32 plies, modeled on the Iron English one): one line per
+core idea, condensed from full lines (same ids NOT reused — new ids; source field names
+the parent), note = the rule. Covers: h3-hook storm, Qe2 lines, dxe5 trades, Bxg5 sac,
+Ba2/Nf5 recipe, b3 Tame, Nh4 take-d4 (x3), Be3 regroup (x2), dxe5 Bxf7 trick, 6.Be3
+hook, 5th-move sidelines (Bg5/Rg1 mate/d5/dxe5/Bd3), Shirov x2, 2.f4 x2, 2.d3, 3.Bc4
+trap, 4.Be3. 132 → 160 variations, 5 → 8 chapters; courses 1-5 deep-equal.
 
 ### 2026-08-23 (rev 5) — custom Ch.1: the Nh4 jump + the 9.Be3 regroup (+24 lines)
 

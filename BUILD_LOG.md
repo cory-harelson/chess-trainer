@@ -36,23 +36,24 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-24 (rev 11)
+## CURRENT STATE — 2026-08-24 (rev 12)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 930,685 bytes
-- Validation: 2,115 non-partial lines replayed strictly through the embedded chess.js —
+- HEAD: `<this commit>` · `index.html` = 931,499 bytes
+- Validation: 2,110 non-partial lines replayed strictly through the embedded chess.js —
   0 illegal moves, 0 non-canonical SANs; 2,142 chapterId refs, all resolving; 32 partials;
   0 prefix/exact duplicates within the custom course's non-Quickstarter chapters AND
   within the Quickstarter itself; every Quickstarter line = its parent's full move list
   (31/31, `source: "Quickstarter — same line as '<parent>'"`, link identical to parent's).
-- Custom course: 221 variations / 11 chapters (Unique Coverage 29).
+- Custom course: 221 variations / 11 chapters (Unique Coverage 29), all chapters carry
+  `group:"Black Lion"`. The Black Lion course is 332 (its 5 legacy added lines removed).
 
 **Courses (6) — ALL use explicit chapter structure:**
 
 | Course | Variations | Chapters |
 |---|---|---|
 | The Iron English: Botvinnik Variation | 810 | explicit (32) |
-| The Black Lion (Simon Williams) | 337 | explicit (29) + 5 added → "Added lines" |
+| The Black Lion (Simon Williams) | 332 | explicit (29); legacy added lines removed rev 12 |
 | Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
@@ -77,6 +78,36 @@ Fetch it directly:
   line from the matches panel or All Sections (jumpStack snapshots, explorer tab only)
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-24 (rev 12) — old 3.Bc4 bolt-ons removed from Black Lion + opening-level grouping
+
+**Data (Cory's call):** the Black Lion course's 5 legacy `added:true` analysis-board
+lines ("3. Bc4 Sideline: …", `source:"Own analysis"`, no chapterId) are DELETED —
+they drilled the unsound 3...e5 answer that rev 11 replaced with Nxe4!, and kept
+surfacing in the This Position tab. Black Lion 337 → 332; its "Added lines" picker
+bucket disappears (no added lines remain). These were pre-custom-course bolt-ons, NOT
+Williams course content — the never-edit-source-courses rule is intact. Verified: no
+remaining references to the 5 ids anywhere in the DB; after 3.Bc4 the explorer now
+shows exactly the 5 new custom lines, unanimous on Nxe4.
+
+**UI/data: opening-level grouping in the pickers.** Cory wants the custom course's
+chapters grouped by OPENING so future non-Lion lines have a home. Mechanism: chapters
+may now carry `group:"<opening>"` — all 11 custom chapters got `group:"Black Lion"`.
+Both the trainer picker and All Sections render an extra collapsible level for grouped
+chapters: course ▸ **opening** ▸ chapter ▸ family ▸ lines (default collapsed, search/
+pos-filter force-expand, tri-state checkbox on the opening row selects the whole
+repertoire). Chapter DISPLAY names strip a leading "<group>" prefix ("Black Lion 1:
+Main Line Storm" shows as "1: Main Line Storm" under the Black Lion header) — data
+names unchanged, collapse keys unchanged. Courses without `group` render exactly as
+before (byte-identical data, code path skips the level). New CSS: `.tr-ohdr` +
+`.ind` indent modifiers + `.secitem.d4`.
+
+Validation: 2,110 non-partial strict replay clean; 2,142 refs resolve; courses 1-5
+untouched except Black Lion (asserted = original minus the 5); custom variations
+byte-identical (only chapter objects gained `group`); Playwright pass (opening row
+renders in both pickers with stripped chapter names + indentation, checkbox selects
+218 trainable, search penetrates the new level, Iron English & friends unchanged,
+3.Bc4 explorer matches = the 5 new lines only). Base: `d13ec5d`.
 
 ### 2026-08-24 (rev 11) — 3.Bc4 family REPLACED with Cory's Nxe4! analysis + Bxg5-sac note
 

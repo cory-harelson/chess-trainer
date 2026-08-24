@@ -36,14 +36,15 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-24 (rev 9)
+## CURRENT STATE — 2026-08-24 (rev 10)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 928,865 bytes
+- HEAD: `<this commit>` · `index.html` = 930,237 bytes
 - Validation: 2,116 non-partial lines replayed strictly through the embedded chess.js —
   0 illegal moves, 0 non-canonical SANs; 2,143 chapterId refs, all resolving; 32 partials;
-  0 prefix/exact duplicates within the custom course's non-Quickstarter chapters;
-  Quickstarter parent-name + link consistency 31/31.
+  0 prefix/exact duplicates within the custom course's non-Quickstarter chapters AND
+  within the Quickstarter itself; every Quickstarter line = its parent's full move list
+  (31/31, `source: "Quickstarter — same line as '<parent>'"`, link identical to parent's).
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -75,6 +76,38 @@ Fetch it directly:
   line from the matches panel or All Sections (jumpStack snapshots, explorer tab only)
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-24 (rev 10) — Quickstarter lines extended to full length + 3.Bc4 "why" note
+
+Cory's asks: (1) check the Quickstarter itself for the shorter-prefix-duplicate problem;
+(2) he likes the whittled-down SELECTION but not the truncation — extend each QS line
+back out to its parent custom line's full ending.
+
+- **Within-QS dup scan: 0 before, 0 after** (pairwise SAN-prefix/exact over the 31
+  trainable QS lines). The QS was already clean internally.
+- **15 QS lines extended to their parents' full move lists** (ids/names/notes/links all
+  unchanged — only `moves` grew; stats survive): 8.h3 #2 24→30 · 8.Qe2 #6 26→34 ·
+  8.Re1 #1 22→32 · 9.Nh4 #1 26→32 · 9.Nh4 #6 32→44 · 9.Be3 #1 24→30 · 9.Be3 #5 24→40 ·
+  5.Bg5 26→40 · 5.Rg1 #2 30→48 · 5.d5 #3 22→34 · 5.Bd3 22→30 · 2.d3 #1 22→30 ·
+  6.Qxd4 #17 20→28 · 7.Nxb5/8.Bg2 #1 24→32 · 5.Nge2 #2 22→28. The other 16 were already
+  full length. QS ply range now 20–48. **Every QS line is now an exact move-list copy of
+  the custom main line named in its `source`** — wording updated from "condensed from 'X'"
+  to "same line as 'X'" on all 31 (the quoted parent name is the machine-checked part).
+  QS↔main duplication is BY DESIGN (Cory: the QS is the curated selection).
+- **3.Bc4 provenance question answered in-app:** Cory flagged the QS "3.Bc4 — the exd3!
+  trap" as a weird move order (...e5 before ...Nbd7) with a non-course link. Explanation:
+  vs 2.Nf3+3.Bc4 the slow 3...Nbd7 invites 4.Ng5! at f7 — 3...e5! is the antidote and the
+  pawns (4...d5!, 6...e4) punish the knight; Nbd7 comes at move 10. All five 3.Bc4 lines
+  share this order. They come from the Black Lion course's 5 `added` analysis-board lines
+  (`source: "Own analysis"`, links to a chess.com analysis COLLECTION, not a course —
+  imported to "Sidelines: Unique Coverage" in rev 4 as the only 2.Nf3/3.Bc4 coverage).
+  Added a "why e5 first" note to both the QS line and Unique Coverage's 3.Bc4 #1.
+
+Validation: 2,116 non-partial strict replay clean; 2,143 chapter refs resolve; courses
+1–5 deep-equal; only QS `moves`/`source` + two `note` fields changed (asserted); 31/31
+QS == parent move-lists; Playwright boot + rendered All Sections check (44-ply squeeze
+line renders, note present, no page errors). Base verified: built on `b2c404a` (ls-remote
++ working-tree hash match).
 
 ### 2026-08-24 (rev 9) — custom-course dedup + verified links + All Sections reorg + Return button
 

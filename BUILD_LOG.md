@@ -36,12 +36,14 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-24 (rev 8)
+## CURRENT STATE — 2026-08-24 (rev 9)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 925,904 bytes
-- Validation: 2,120 non-partial lines replayed strictly through the embedded chess.js —
-  0 illegal moves, 0 non-canonical SANs; 2,147 chapterId refs, all resolving; 32 partials.
+- HEAD: `<this commit>` · `index.html` = 928,865 bytes
+- Validation: 2,116 non-partial lines replayed strictly through the embedded chess.js —
+  0 illegal moves, 0 non-canonical SANs; 2,143 chapterId refs, all resolving; 32 partials;
+  0 prefix/exact duplicates within the custom course's non-Quickstarter chapters;
+  Quickstarter parent-name + link consistency 31/31.
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -52,7 +54,7 @@ Fetch it directly:
 | Black is Back: Old Benoni | 101 | explicit (12) |
 | The Madman's Philidor Defense (James Canty III) | 158 | explicit (10) |
 | Lifetime Repertoires: Stonewall Dutch (Simon Williams) | 520 | explicit (27) |
-| Cory's Custom Study Lines (all `added:true`, site:"custom") | 226 | explicit (11) |
+| Cory's Custom Study Lines (all `added:true`, site:"custom") | 222 | explicit (11) |
 
 **Features present in `index.html`:**
 
@@ -67,8 +69,68 @@ Fetch it directly:
 - Black Lion move order normalized: 46 transposable lines use `3...Nbd7 4.Nf3 e5`.
   The 34 `3...e5 4.dxe5` queen-trade lines keep Simon's original order (they cannot
   transpose) and remain fully trainable.
+- All Sections tab = same collapsible hierarchy as the trainer picker (course ▸ chapter
+  ▸ name-family ▸ lines, all default-collapsed, search force-expands)
+- ↩ Return button (+ Backspace): restores the explored position after clicking into a
+  line from the matches panel or All Sections (jumpStack snapshots, explorer tab only)
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-24 (rev 9) — custom-course dedup + verified links + All Sections reorg + Return button
+
+**Cory's audit ask: check every Cory's-Custom line (esp. Quickstarter) for wrong links /
+mixed-up moves, and remove same-line-but-shorter duplicates from the main chapters.**
+
+Audit method (all programmatic, embedded chess.js): strict replay of every line; each
+line's moves cross-checked against its LINKED source-course variation (exact / SAN-prefix
+/ FEN-transposition-at-same-ply, ep-field normalized); every Quickstarter `source:
+"condensed from 'X'"` resolved to parent X and checked for SAN-prefix + identical link;
+pairwise prefix/exact dup scan within non-QS chapters.
+
+Findings + fixes:
+- **All 226 lines replayed legally; every QS line was a clean prefix of its named parent
+  with the parent's exact link** — no moves from one line contaminating another. The two
+  content "divergences" (QS 5.Bd3, 5.d5 #1) are the documented g5-first swaps: final FENs
+  match the Canty originals modulo the en-passant field.
+- **4 true prefix-duplicates REMOVED from main chapters** (kept the longer lines; ids of
+  kept lines untouched): BL1 `8.Re1 #1` (22p ⊑ #2/#3/#4) · BL6 `5.fxe5 #1` (18p ⊑ #5/#6)
+  · BL6 `6.Qxd4 #1` (20p ⊑ #19/#20) · BL6 `6.Qxd4 #2` (24p ⊑ #27–#34). Their content
+  remains as the QS condensations + the longer extensions. The 5.fxe5/6.Qxd4 #1 family
+  notes were carried onto the new #1s. 226 → 222 variations.
+- **Renumbered to close the gaps** (names only — ids/stats survive): 8.Re1 #2-6 → #1-5,
+  5.fxe5 #2-6 → #1-5, 6.Qxd4 #3-34 → #1-32. Root cause of Cory's "link opens the wrong
+  line number": the deleted #1/#2 were Williams's unnumbered chapter-OVERVIEW lines, so
+  custom `#N` linked course `Theory #(N-1)` / `#(N-2)`. After renumbering, custom
+  `5.fxe5 #N` and `6.Qxd4 #N` link course `Theory #N` exactly (offset 0, verified).
+  8.Re1 keeps a uniform offset (course numbers Re1 as Theory #33+); other families were
+  already offset-consistent. 6.Nxd4 deliberately untouched — its missing #4 is rev 7's
+  move-identical dup removal and its −1 offset is uniform.
+- **2 QS retargets:** "Storm vs 8.Re1" link → the new `8.Re1 #1` (old link pointed at the
+  deleted overview's course line); "4.f4 — exd4!" source+link → `'6.Qxd4 #17'` (the
+  longest extension of its stem). QS parent/link consistency now 31/31.
+
+**UI (2 features + 1 tooltip):**
+- **All Sections tab reorganized** — was one flat list with a silent 300-per-course cap;
+  now the trainer picker's hierarchy (course ▸ chapter ▸ trGkey name-family ▸ lines),
+  everything default-collapsed, search force-expands (500-row cap with an explicit
+  "+N more" note), scroll position preserved. Reuses tr-chdr/tr-hhdr/tr-ghdr styles and
+  trComputeChapters/trGkey; new `.secitem.d2/.d3` indent rules. Line rows unchanged
+  (badges, note dots, plies, partial-line external links, click-to-load).
+- **↩ Return button + Backspace** — clicking a line in the matches panel or All Sections
+  now snapshots {moveStack, ptr, flipped} to a jumpStack (max 40) before the line replaces
+  the board; Return/Backspace pops it: forward moves from the opened line are discarded
+  and the explored position + its matches list come back. Button lives in #controls,
+  visible only on the explorer tab with a non-empty stack; multiple jumps unwind in order.
+- Matches-panel ↗ tooltip for added lines now says "Open the source line on chess.com"
+  when the link targets a course variation ("analysis board" wording was wrong for most
+  custom lines).
+
+Validation: 2,116 non-partial lines strict-replayed, 0 illegal / 0 non-canonical; 2,143
+chapterId refs all resolve; courses 1–5 deep-equal pre/post splice; variation order
+preserved (subsequence-asserted); Playwright UI pass 20/20 (jump/Return flows incl.
+Backspace, collapsed hierarchy counts, search expand, trainer picker unchanged, phone
+width). Base verified: built on real `cbbc5b1` (clone HEAD = ls-remote = recorded rev 8
+SHA, byte-identical).
 
 ### 2026-08-24 (rev 8) — FIX: picker showed custom course as one "Added lines" bucket
 

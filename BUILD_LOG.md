@@ -36,7 +36,7 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-23 (rev 2)
+## CURRENT STATE — 2026-08-24 (rev 8)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
 - HEAD: `<this commit>` · `index.html` = 925,904 bytes
@@ -69,6 +69,29 @@ Fetch it directly:
   transpose) and remain fully trainable.
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-24 (rev 8) — FIX: picker showed custom course as one "Added lines" bucket
+
+**The bug (renderer, not deploy):** `trComputeChapters()`'s explicit-chapters branch
+routed EVERY `added:true` variation to "Added lines" unconditionally, ignoring its
+`chapterId`. All 226 custom-course lines are `added:true`, so the picker collapsed the
+whole course into a single "Added lines" chapter. Revs 1-7 all deployed fine — the
+data (11 chapters, renamed lines) was live everywhere; only the chapter RENDERING was
+wrong. Reports of "the new organization isn't live" on 08-23 were this bug, not
+caching. Lesson recorded: verifying `window.COURSES_DB` proves the DATA shipped, not
+that the UI renders it — verify the rendered picker too.
+
+**Fix (one line, DB-semantics identical for courses 1-5):**
+`byId[v.chapterId] || (v.added ? 'Added lines' : 'Other')` — an added line whose
+chapterId resolves now uses its explicit chapter; only chapterId-less added lines
+(Black Lion's 5 legacy analysis-board lines) still fall back to "Added lines".
+Verified against all 6 courses: courses 1-5 route identically to before.
+
+**Plus:** custom course variations physically re-sorted into chapter order
+(stable sort, IDs & content untouched — training stats unaffected) because the picker
+lists chapters by first appearance; without the sort, Black Lion 2 rendered after the
+Sidelines chapters. Courses 1-5 byte-identical; custom course deep-equal modulo order.
+Validation: 226/226 strict chess.js replay clean, 0 orphan chapterIds.
 
 ### 2026-08-23 (rev 7) — coverage complete: 4.f4 (Williams) + 4.g4 & 4.g3 (Canty)
 

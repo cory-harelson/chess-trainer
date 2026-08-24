@@ -36,10 +36,10 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-24 (rev 12)
+## CURRENT STATE — 2026-08-24 (rev 13)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 931,499 bytes
+- HEAD: `<this commit>` · `index.html` = 934,827 bytes
 - Validation: 2,110 non-partial lines replayed strictly through the embedded chess.js —
   0 illegal moves, 0 non-canonical SANs; 2,142 chapterId refs, all resolving; 32 partials;
   0 prefix/exact duplicates within the custom course's non-Quickstarter chapters AND
@@ -47,6 +47,9 @@ Fetch it directly:
   (31/31, `source: "Quickstarter — same line as '<parent>'"`, link identical to parent's).
 - Custom course: 221 variations / 11 chapters (Unique Coverage 29), all chapters carry
   `group:"Black Lion"`. The Black Lion course is 332 (its 5 legacy added lines removed).
+- **Stockfish in the container: `apt-get install -y stockfish` → `/usr/games/stockfish`
+  (SF16); python-chess installs with `pip install chess --break-system-packages
+  --only-binary :all:`** (the sdist build fails — the wheel works).
 
 **Courses (6) — ALL use explicit chapter structure:**
 
@@ -78,6 +81,65 @@ Fetch it directly:
   line from the matches panel or All Sections (jumpStack snapshots, explorer tab only)
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-24 (rev 13) — study-session audit: Tame rebuilt, Be3-hook & Qe2 recapture fixed,
+### c6-order unified, G4/NH2 rules derived (SF16-verified throughout)
+
+Cory drilled the course and fired ~8 questions; every one was resolved with the
+tabulate-all-siblings + engine method (SF16 d20-24). 18 objects changed, ids untouched.
+
+**Rules derived (now in the read-me note):**
+- **G4 RULE:** after ...g5, push ...g4 only when it forks the hook AND the horse (White
+  pawn h3 + knight f3 both standing); if either is missing — or White just set Rd1
+  against the d-file with d4/e5 tension on — ...Nf8 first. Verified across all 44
+  decision nodes where both moves were legal; the four course ...g4 moves all fit
+  (engine gaps 0.8-2.2 vs Nf8); the Nf8 cases fit or are free choices. THREE of our own
+  g5-first swap lines (5.Bd3, 5.d5 #1, 5.d5 #3) drill ...Nf8 where the engine now
+  prefers ...g4 by 0.3-0.8 — flagged to Cory as optional future refinements, NOT changed.
+- **NH4 RULE extended to NH4/NH2:** whenever the knight leaves f3 (Nh4 before ...g5 or
+  Nh2 after it), take d4 and jump ...Ne5 — even when Be3 can recapture (engine: exd4
+  ~0.55 better than the old regroup in the 6.Be3-hook line).
+
+**Line changes:**
+- **Tame lines REBUILT** ('8.b3 - go Tame', '8.Re1 + 9.b3 - go Tame', 24p → 30p, same
+  transposed tail, ids kept): Cory flagged a6-first + a Re8/Bf8 wander as "not Simon's
+  plan" (Simon: b6, a6, Bb7, b5). Engine verdict: in the early-h6 order an early ...b6
+  ALWAYS walks into d5! (~0.7-1.1 worse — Simon's own order has the spare tempo, ours
+  spent it on h6), so the regroup is forced — but the expansion works right after it.
+  New line: castle, Re8, Bf8, THEN b6 (30cp from best), h3 exd4 Nxd4, a6, Bf1 Bb7 —
+  ends -0.12. White's a5 never punishes (checked). QS copy renamed
+  "8.b3 — go Tame: regroup, then b6-a6-Bb7". The Nh4/Nf5→Bf8 line untouched (that
+  maneuver is correct THERE, as Cory himself noted).
+- **6.Be3-hook line FIXED** (24p → 28p): course's ...Nf8 after 10.Nh2 replaced with the
+  rule-consistent 10...exd4! 11.Qxd4 Ne5 (engine-walked: Be2 Rg8 Kh1 g4 hxg4 Nfxg4,
+  ends -0.22). Canty's Nf8 was 0.55 worse — book imprecision, rule wins.
+- **8.Qe2 #1 REBUILT + renamed** '8.Qe2 #1 (dxe5: take with the pawn)' (22p → 28p):
+  Simon's Nxe5-and-castle was the ONLY knight-recapture among 9 same-shape dxe5 nodes
+  in the whole course (all others take with the pawn); engine says dead equal (0.05
+  apart) — switched to the pawn recapture for one-answer-per-position consistency.
+  Engine-walked tail: White's best is the immediate Nh4 pest; line teaches Nc5-e6,
+  O-O, Ng5! (ends -0.46). QS copy renamed "8.Qe2 + dxe5 — take with the pawn, keep
+  attacking".
+- **c6 before Be7 unified** (FEN-identical swaps, engine-cleared ≤0.11 apart, zero
+  punishes): 5.Nge2 #1-#5, 5.Bd3 (g5 first), 5.Be2 + the QS copies. Canty's Be7-first
+  there was arbitrary. NOT swapped: 5.Bg5 (Be7 answers the bishop on g5 — purposeful)
+  and the 2.d3 family (different structure).
+- **Notes added:** Nfg4-vs-Nh5 in the 8.Nh4 engine lines (Canty's Nh5 needs Re1 spent —
+  with White's rook still on f1, f4! refutes Nh5 by a full point; hence Nfg4);
+  Be3-regroup QS lines now carry the no-hook rule text.
+
+**Questions answered without changes (engine-verified):**
+- 9...a5 in the 4.g3/Nge2 crash lines is the engine's BEST move at that exact moment
+  (+0.48, next best hxg3 +0.32): it fixes a4 as the target for ...Nb6 and stops White's
+  a5 before the knight needs b6. Not an odd insert — the timing is the point.
+- Canty's systematic ...a5 after a4 in the MAIN lines would cost ~0.10-0.15 + a tempo
+  (7...a5 -0.68 vs 7...Be7 -0.53) — kept Williams's order; a5 stays only where the
+  structure demands it. Flagged as a possible future system conversion, Cory's call.
+- "5.dxe5 — keep attacking" plays ...Nh5 (not Nf8/g4) because the kicked bishop sits on
+  g3: Nh5! is the engine's best by ~1.2 (Nf8 there is -5.7 — never).
+
+Validation: 2,110 strict replay clean; QS==parent 31/31; 0 dups; only the 20 intended
+objects changed (asserted per-id); Playwright boot clean. Base: `cea1615`.
 
 ### 2026-08-24 (rev 12) — old 3.Bc4 bolt-ons removed from Black Lion + opening-level grouping
 

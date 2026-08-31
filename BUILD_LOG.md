@@ -36,10 +36,10 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-24 (rev 13)
+## CURRENT STATE — 2026-08-31 (rev 14)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 934,827 bytes
+- HEAD: `<this commit>` · `index.html` = 936,423 bytes
 - Validation: 2,110 non-partial lines replayed strictly through the embedded chess.js —
   0 illegal moves, 0 non-canonical SANs; 2,142 chapterId refs, all resolving; 32 partials;
   0 prefix/exact duplicates within the custom course's non-Quickstarter chapters AND
@@ -64,6 +64,8 @@ Fetch it directly:
 
 **Features present in `index.html`:**
 
+- Material-count badge: +N pill on the leading player's side of the board, all views
+  (`updateMaterialBadges()` at the end of `renderPosition()`; P1/N3/B3/R5/Q9; hidden when equal)
 - Line notes + `flag: "skip"` annotations — 13 notes total: 10 flagged Risky Lion lines
   vs 8.b3, plus 3 Stonewall Dutch move-order notes (2b, 8...h6 before ...e5)
 - Explicit chapter support — `course.chapters` + per-variation `chapterId` wins over
@@ -81,6 +83,64 @@ Fetch it directly:
   line from the matches panel or All Sections (jumpStack snapshots, explorer tab only)
 
 ## CHANGE LOG (newest first)
+
+### 2026-08-31 (rev 14) — material-count badge + course-wide numbering audit
+### (4E #10 Alt, Philidor Qxd4 renames, upstream Alt-suffix sync, 8.h3 #10 reorder)
+
+**Feature: material-count badge on the board (all views).** Two pills inside
+`#board-wrap` (`#mat-top`/`#mat-bottom`, `.matbadge` CSS, z-index 10);
+`updateMaterialBadges()` sums P1/N3/B3/R5/Q9 from `game.board()` at the end of
+`renderPosition()` — the single render choke point, so explorer, trainer, and
+every board load update automatically. Only the leading side's pill shows
+(+N on that player's side, orientation-aware via `flipped`; hidden when equal;
+tooltip spells out who is up how much).
+
+**Cory's Theory 4E report verified — the error is UPSTREAM in Simon's course.**
+Re-fetched live course data for all 5 chess.com courses and diffed id-by-id
+against our DB (endpoint MOVED since 2026-08-22: now
+`/service/courses/rpc/chesscom.courses.v1.CoursesTrainingService/GetCourseLearningSession`,
+plain cookie auth from any chess.com page, same request body). Result: ids,
+order, chapters, counts, info flags 100% identical in all 5 courses — zero
+structural drift. Iron English 4E on chess.com itself has two #7s and no #3.
+The second #7 (19 plies, id `e2903123`) is the 8...Qb6 alternative sitting
+CORRECTLY between #10 and #11 in the move tree. Local fix: renamed
+**"Theory 4E: #10 Alt"** + explanatory `note`; all other 4E numbers still match
+chess.com (deliberately did NOT renumber the chapter to close the #3 gap).
+
+**Philidor Ch4 naming bug (also upstream, Canty's):** 8 lines named
+"…5.Nf3 / 6.Nxd4 / 7.Be3 #2-#6" and "…6.Nxd4 / 7.e5 #1-#3" actually play
+6.**Qxd4** (move 11 verified in-data) → renamed 6.Nxd4→6.Qxd4, moves untouched.
+Also fixed the "5.fxe5 # #10" double-# typo → "5.fxe5 #10".
+
+**Upstream rename sync — chess.com dropped suffixes since our scrape (16 renames):**
+IE: `1A #28 Alt`→`#28`, `2A #30/#31 Alt`→`#30/#31`. Black Lion: `Tame Lion 6. Bc4
+Paused`→`…6. Bc4`, `Theory #22 - 8. b3 Alt`→`…8. b3`, `Be2 Theory #3 - Risky
+Alternative Alt`→ sans Alt, `Shirov Theory #5 - 11. Bh3 Alternative Alt`→ sans
+Alt, `3. Bd3 and 3. f3: Theory #2 Alt`→`#2`. Old Benoni: `Repertoire Clashes
+Ref`→`Repertoire Clashes`, 5× `4.Nc3 Be7 | Alternative #N Alt`→ sans Alt,
+`2.e3 #3 | …Nbd7 Alt` and `2.c3 #9 | …cxd4 Alt`→ sans Alt (upstream's double
+space collapsed). **NOT synced (upstream noise, ours kept cleaner):** Black
+Lion "…5. Be2: Theory #4 - 7. g5" gained a stray leading "/" upstream, plus 6
+whitespace-only diffs (trailing/double spaces).
+
+**Custom course:** `8.h3 #10` physically moved from after `8.h3 #1` to after
+`8.h3 #9` (it's a 9.Be3-branch line; the picker family rendered 1,10,2…9).
+Pure object move — ids, content, stats untouched.
+
+**Known upstream quirks left as-is (course-faithful, for the record):**
+IE 2A renders …#29,#32,#33,#30,#31 (Simon's own display order); Stonewall 1c
+has two '#9' lines ('#7-#9 (Alternative 9...Nh5)' set and a '#9 (Alternative
+10...g5)' after #12); Black Lion Quickstarter has two lines both named "The
+Standard Set-up of the Risky Lion: 8. Re1" where the 22-ply one is a strict
+prefix of the 32-ply one (candidate for a skip-flag if it bugs Cory in drills).
+
+Validation: 2,110 non-partial strict replay clean (0 illegal, 0 non-canonical);
+2,142 chapterId refs resolve; 32 partials; per-id deep diff = exactly the 26
+intended name/note changes + 1 reorder, everything else byte-equal; `node
+--check` clean; Playwright: badge (+1 correct side in both orientations, clears
+on equality, trainer run on mobile viewport clean, 0 page errors), picker shows
+4E …#10, #10 Alt, #11…, the Qxd4 renames, and 8.h3 #1-#10 in order.
+Base: `543b52d` (clone == live raw, sha256 dd0312e7…).
 
 ### 2026-08-24 (rev 13) — study-session audit: Tame rebuilt, Be3-hook & Qe2 recapture fixed,
 ### c6-order unified, G4/NH2 rules derived (SF16-verified throughout)

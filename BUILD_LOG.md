@@ -36,10 +36,10 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-08-31 (rev 14)
+## CURRENT STATE — 2026-09-14 (rev 15)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 936,423 bytes
+- HEAD: `<this commit>` · `index.html` = 936,792 bytes
 - Validation: 2,110 non-partial lines replayed strictly through the embedded chess.js —
   0 illegal moves, 0 non-canonical SANs; 2,142 chapterId refs, all resolving; 32 partials;
   0 prefix/exact duplicates within the custom course's non-Quickstarter chapters AND
@@ -66,8 +66,9 @@ Fetch it directly:
 
 - Material-count badge: +N pill on the leading player's side of the board, all views
   (`updateMaterialBadges()` at the end of `renderPosition()`; P1/N3/B3/R5/Q9; hidden when equal)
-- Line notes + `flag: "skip"` annotations — 13 notes total: 10 flagged Risky Lion lines
-  vs 8.b3, plus 3 Stonewall Dutch move-order notes (2b, 8...h6 before ...e5)
+- Line notes + `flag: "skip"` annotations — 15 notes / 13 skip flags: 11 flagged Black Lion
+  lines (10 Risky Lion vs 8.b3 + Tame Lion 6.Bg5 #4, rev 15), 3 Stonewall Dutch move-order
+  notes (2b, 8...h6 before ...e5, 2 flagged), 1 unflagged Iron English 4E #10 Alt note
 - Explicit chapter support — `course.chapters` + per-variation `chapterId` wins over
   the legacy name-pattern heuristic
 - Live-session persistence — `visibilitychange` / `pagehide` snapshot to localStorage,
@@ -83,6 +84,43 @@ Fetch it directly:
   line from the matches panel or All Sections (jumpStack snapshots, explorer tab only)
 
 ## CHANGE LOG (newest first)
+
+### 2026-09-14 (rev 15) — Tame Lion 6.Bg5 #4 flagged SKIP (transposition conflict with #5)
+
+**Cory's report:** Theory #4 and Theory #5 of ch.19 "The Tame Lion (3...e5 4.dxe5 6.Bg5)"
+transpose into the *same* position and then recommend different moves — the trainer marks
+you wrong depending on which drill you're in.
+
+**Confirmed identical node** (python-chess, ep-stripped):
+`r2k1b1r/pppn1ppp/4bn2/4p1B1/4P3/2N2N2/PPP2PPP/2KR1B1R b - - 5 8`, Black to move.
+- #4 reaches it via 7.Nf3 Nd7 8.O-O-O, then plays **8...h6**
+- #5 reaches it via 7.O-O-O+ Nd7 8.Nf3, then plays **8...Kc8**
+
+**SF16 verdict (depth 26-28, evals from Black):**
+
+| node | course move | engine top | gap |
+|---|---|---|---|
+| transposition node | 8...h6 (#4) / 8...Kc8 (#5) | **Kc8** | h6 is 0.15-0.23 behind; both playable |
+| after 8...Kc8 9.Bh4 | 9...Bb4 (#5) | **Bb4** | 0.00 |
+| after 9...Bb4 | 10.Ng5 (course) | **10.Nd5** (0.00) | Ng5 = White's 3rd choice, -0.21 |
+| after 10.Ng5 Bxc3 11.Nxe6 | 11...fxe6 (course) | **11...Bxb2+!** | **0.23 — course is imprecise here** |
+| #5 end, 19...Re7 | — | Re7 | 0.00; Black a clean pawn up (6v5), ~+0.2 |
+
+10 of #5's 12 Black moves are the engine's #1 choice and 5 are recaptures — it memorizes
+like a forced sequence. #4's entire content is three moves (h6, Kc8, Bd6) into a dead-level
+quiet ending, and 8...h6 *forecloses* #5 (after ...h6, Ng5 is answered by hxg5).
+
+**Chapter tabulation** — of 14 lines in ch.19, ...h6 appears in 10; the 4 without it are
+#6 (White trades on f6 himself), #9/#10 (bishop leaves g5 via Bxf4) and **#5**. So #5 is
+the only line that leaves the g5-bishop unchallenged *on purpose* — the tactics are the point.
+
+**Change:** `78e1cf10-9b48-4199-84d4-e348591aed09` (Tame Lion 6.Bg5 #4) gets
+`note` + `flag:"skip"`. No move changes anywhere. Deep-equal asserted: exactly one
+variation differs across all 6 courses; `moves`/`name`/`id` untouched.
+
+**KNOWN GAP (not created by this change):** neither line covers 9.Bh4 Bb4 **10.Nd5**,
+which is White's best (0.00). Black is fine (10...Nxd5 11.exd5 Bg4 12.Bg5 f5 13.Be3, level)
+but it's off-book. Offered to Cory as a custom-course addition — pending his call.
 
 ### 2026-08-31 (rev 14) — material-count badge + course-wide numbering audit
 ### (4E #10 Alt, Philidor Qxd4 renames, upstream Alt-suffix sync, 8.h3 #10 reorder)

@@ -161,9 +161,23 @@
   .tr-line .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tr-line.done .nm { color: var(--dim); }
   .tr-line .dots { color: #e0756a; letter-spacing: 2px; font-size: 11px; white-space: nowrap; flex: 0 0 auto; }
-  .tr-line .rm { color: var(--dim); font-weight: 800; cursor: pointer; padding: 0 5px; flex: 0 0 auto;
-    font-size: 15px; line-height: 1; border-radius: 4px; }
+  /* the two per-line controls sit at OPPOSITE ends of the row (link left of the name, × far right)
+     and are real 32px tap targets — a mis-tap used to cost the line with no way back */
+  .tr-line .rm { color: var(--dim); font-weight: 800; cursor: pointer; flex: 0 0 auto; margin-left: 14px;
+    font-size: 17px; line-height: 1; border-radius: 6px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center; }
   .tr-line .rm:hover { color: #fff; background: #a94438; }
+  .tr-line a.golink.sm { font-size: 15px; padding: 0; width: 32px; height: 32px; display: flex; align-items: center;
+    justify-content: center; border-radius: 6px; margin-left: -4px; }
+  .tr-line a.golink.sm:hover { background: var(--panel2); }
+  .tr-line { padding: 2px 9px 2px 6px; }
+  .tr-removed-head { font-size: 11.5px; color: var(--dim); text-transform: uppercase; letter-spacing: .6px;
+    margin: 14px 0 4px; padding-top: 10px; border-top: 1px dashed var(--panel2); }
+  .tr-line.removed .nm { color: var(--dim); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.25); }
+  .tr-line .restore { flex: 0 0 auto; margin-left: 14px; font-size: 12px; font-weight: 700; cursor: pointer;
+    color: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 0 10px; height: 30px;
+    display: flex; align-items: center; white-space: nowrap; }
+  .tr-line .restore:hover { background: var(--accent); color: #141312; }
   .tr-sum-head { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
   #tr-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: rgba(20,19,18,.45); z-index: 90; border-radius: 6px; }
@@ -2266,11 +2280,22 @@ function playSan(san) {
 }
 
 function goTo(n) {
+  var live = moveStack.length;
+  n = Math.max(0, Math.min(live, n));
   if (trInputActive()) {
-    if (!(play && play.review)) return;   // during end-of-line review, navigation is allowed
-    trHideOverlay();
+    if (play && play.review) trHideOverlay();
+    else {
+      // Mid-line browsing: moveStack only ever holds the moves already played, so stepping
+      // back and forward through it can't reveal the move you're supposed to find.
+      // The board is read-only while you're behind the live position; any tap (or ▶|)
+      // snaps back to it. Trainer timers call trSyncLive() before touching `game`.
+      if (n < live) {
+        if (!play.browsing) { var st = document.getElementById('tr-status'); play.browsing = { cls: st.className, html: st.innerHTML }; }
+        setStatus('', '◀ Looking back at ' + (n ? fmtPly(n - 1, moveStack[n - 1]) : 'the start') +
+          ' — tap the board or ▶| to return to your move', true);
+      } else if (play.browsing) trBrowseEnd();
+    }
   }
-  n = Math.max(0, Math.min(moveStack.length, n));
   if (n === ptr + 1) {          // single step forward: animate it
     var m = game.move(moveStack[ptr]);
     if (m) { ptr = n; animMove(m, afterChange); return; }
@@ -2627,6 +2652,9 @@ function sqFromPoint(x, y) {
 document.getElementById('board').addEventListener('pointerdown', function(e){
   var sq = sqFromPoint(e.clientX, e.clientY);
   if (!sq) return;
+  if (trInputActive() && play && !play.review && ptr !== moveStack.length) {
+    e.preventDefault(); selected = null; goTo(moveStack.length); return;   // browsing → back to the live position
+  }
   var piece = game.get(sq);
   if (selected && selected !== sq) {
     if (tryMove(selected, sq)) { selected = null; return; }
@@ -3103,10 +3131,30 @@ function trShowView(w) {
   document.getElementById('tr-sess').style.display = (w === 'sess') ? '' : 'none';
   document.getElementById('tr-summary').style.display = (w === 'summary') ? '' : 'none';
 }
-function setStatus(kind, html) {
+function setStatus(kind, html, force) {
+  // while the user is browsing back through played moves, trainer messages are parked
+  // and shown when they return to the live position (so nothing is lost or stale)
+  if (play && play.browsing && !force) { play.browsing = { cls: kind || '', html: html }; return; }
   var el = document.getElementById('tr-status');
   el.className = kind || '';
   el.innerHTML = html;
+}
+function trBrowseEnd() {
+  if (!play || !play.browsing) return;
+  var b = play.browsing; play.browsing = null;
+  setStatus(b.cls, b.html);
+}
+// Snap `game`/ptr back to the live position (end of moveStack) if the user browsed back.
+// Every trainer routine that reads or mutates `game` calls this first.
+function trSyncLive() {
+  if (!play || play.review) return;
+  if (ptr !== moveStack.length) {
+    game = new Chess();
+    for (var i = 0; i < moveStack.length; i++) game.move(moveStack[i]);
+    ptr = moveStack.length; selected = null;
+    renderPosition(); renderMoveStrip();
+  }
+  trBrowseEnd();
 }
 function renderSessHead() {
   if (!trSession) return;
@@ -3137,8 +3185,9 @@ function renderLineList() {
   if (!trSession) return;
   var wrap = document.getElementById('tr-linelist');
   wrap.innerHTML = '';
+  var removedIdx = [];
   trSession.lines.forEach(function(L, i){
-    if (L.removed) return;
+    if (L.removed) { removedIdx.push(i); return; }
     var row = document.createElement('div');
     var isCur = (i === trSession.curLi && !!play);
     var clickable = !L.passed && !isCur && !trSession.done;
@@ -3153,6 +3202,8 @@ function renderLineList() {
     else if (L.dots > 0) { ic.textContent = '↻'; ic.style.color = '#e0756a'; }
     else { ic.textContent = '·'; ic.style.color = 'var(--dim)'; }
     row.appendChild(ic);
+    var a = trMkLink(L.c, L.v, 0);          // course link sits LEFT of the name, far from the ×
+    if (a) row.appendChild(a);
     var nm = document.createElement('span'); nm.className = 'nm';
     nm.textContent = L.name; nm.title = L.name + ' · ' + L.course;
     row.appendChild(nm);
@@ -3162,12 +3213,10 @@ function renderLineList() {
       d.title = 'Missed ' + L.dots + ' time' + (L.dots === 1 ? '' : 's');
       row.appendChild(d);
     }
-    var a = trMkLink(L.c, L.v, 0);
-    if (a) row.appendChild(a);
     var rm = document.createElement('span');
     rm.className = 'rm';
     rm.textContent = '×';
-    rm.title = 'Remove this line from the session (no penalty, no comeback)';
+    rm.title = 'Remove this line from the session (you can restore it from the bottom of the list)';
     rm.onclick = function(e){ e.stopPropagation(); trRemoveLine(i); };
     row.appendChild(rm);
     wrap.appendChild(row);
@@ -3183,6 +3232,34 @@ function renderLineList() {
       } catch(e) {}
     }, 0);
   });
+  // ----- removed lines: parked at the bottom, one tap to put them back -----
+  if (removedIdx.length && !trSession.done) {
+    var hd = document.createElement('div');
+    hd.className = 'tr-removed-head';
+    hd.textContent = 'Removed from this session (' + removedIdx.length + ')';
+    wrap.appendChild(hd);
+    removedIdx.forEach(function(i){
+      var L = trSession.lines[i];
+      var row = document.createElement('div');
+      row.className = 'tr-line removed';
+      var ic = document.createElement('span'); ic.className = 'ic';
+      ic.textContent = L.passed ? '✓' : '·'; ic.style.color = 'var(--dim)';
+      row.appendChild(ic);
+      var a = trMkLink(L.c, L.v, 0);
+      if (a) row.appendChild(a);
+      var nm = document.createElement('span'); nm.className = 'nm';
+      nm.textContent = L.name; nm.title = L.name + ' · ' + L.course;
+      row.appendChild(nm);
+      var rs = document.createElement('span');
+      rs.className = 'restore';
+      rs.textContent = '↩ Restore';
+      rs.title = L.passed ? 'Put this line back in the session (already passed — counts again)'
+                          : 'Put this line back in the session — it rejoins the queue';
+      rs.onclick = function(e){ e.stopPropagation(); trRestoreLine(i); };
+      row.appendChild(rs);
+      wrap.appendChild(row);
+    });
+  }
 }
 function renderSession() { renderSessHead(); renderLineList(); }
 
@@ -3232,7 +3309,7 @@ function trPlayLine(li) {
   trSession.curLi = li;
   var L = trSession.lines[li];
   var startPly = L.startPly || 0;
-  play = { li: li, ply: startPly, missed: [], phase: 'line', rq: [], lock: false };
+  play = { li: li, ply: startPly, missed: [], phase: 'line', rq: [], lock: false, browsing: null };
   flipped = (L.side === 'b');
   buildBoard();
   game = new Chess(); moveStack = []; ptr = 0; selected = null;
@@ -3249,6 +3326,7 @@ function trPlayLine(li) {
   later(450, trMaybeOpponent);
 }
 function trApply(san, cls, noAnim) {
+  trSyncLive();
   var m = game.move(san) || game.move(sanClean(san)) || game.move(sanClean(san), {sloppy: true});
   if (!m) return null;
   moveStack.push(m.san); ptr = moveStack.length; selected = null;
@@ -3277,6 +3355,7 @@ function trMaybeOpponent() {
 }
 function trUserMove(from, to, noAnim) {
   if (!trSession || trSession.done || !play || play.lock || play.review) return false;
+  if (ptr !== moveStack.length) { trSyncLive(); return false; }   // was browsing — just snap back
   var L = trSession.lines[play.li];
   if (game.turn() !== L.side) return false;
   var piece = game.get(from);
@@ -3324,6 +3403,7 @@ function trUserMove(from, to, noAnim) {
   return true;
 }
 function trLineDone() {
+  trSyncLive();
   var L = trSession.lines[play.li];
   play.lock = true;  // no input during end-of-line transitions
   if (!play.missed.length) {
@@ -3345,6 +3425,7 @@ function trWalkForward(targetPly, then) {
   var L = trSession.lines[play.li];
   function step() {
     if (!play || play.phase !== 'redrill') return;
+    trSyncLive();
     if (game.history().length >= targetPly) { then(); return; }
     trApply(L.moves[game.history().length]);
     later(600, step);
@@ -3369,6 +3450,7 @@ function trRedrillPrompt() {
 }
 function trRedrillNext() {
   if (!play || play.phase !== 'redrill') return;
+  trSyncLive();
   var L = trSession.lines[play.li];
   if (!play.rq.length) {
     // last miss fixed — play the rest of the line out so the whole path is visible
@@ -3487,12 +3569,28 @@ function trRemoveLine(i) {
     trHideOverlay();
     play = null;
     trSession.curLi = -1;
-    setStatus('', 'Removed from this session.');
+    setStatus('', 'Removed from this session — restore it from the bottom of the list if that was a mis-tap.');
     renderSession();
     later(500, trAdvance);
     return;
   }
   renderSession();
+}
+// Undo a removal: the line comes back into the deck. Unpassed lines rejoin the end of
+// the current queue; a line that was already passed simply counts again. If the
+// session is sitting on its last review overlay, the "Finish" button becomes "Next".
+function trRestoreLine(i) {
+  if (!trSession || trSession.done) return;
+  var L = trSession.lines[i];
+  if (!L || !L.removed) return;
+  L.removed = false;
+  if (!L.passed && trSession.queue.indexOf(i) === -1 && trSession.failedNext.indexOf(i) === -1 &&
+      !(play && play.li === i)) trSession.queue.push(i);
+  if (play && play.review) trShowOverlay(play.reviewKind);
+  if (!play) { renderSession(); later(300, trAdvance); return; }   // deck was empty — start it
+  setStatus('', 'Restored — <b>' + escapeHtml(L.name) + '</b> is back in the session.');
+  renderSession();
+  trSnapSave();
 }
 // Shuffle mid-session: reorders the line list (and with it the play order of
 // everything still owed). The line currently on the board keeps playing.
@@ -3630,6 +3728,7 @@ function trOnTabChange(t) {
 function trResume() {
   trTok++;
   if (!play) { trAdvance(); return; }
+  play.browsing = null;
   var L = trSession.lines[play.li];
   flipped = (L.side === 'b');
   buildBoard();
@@ -3681,6 +3780,7 @@ document.getElementById('tr-search').addEventListener('input', trRenderPicker);
 document.getElementById('tr-include-info').onchange = trRenderPicker;
 document.getElementById('tr-hint').onclick = function(){
   if (!trSession || trSession.done || !play || play.lock || play.review) return;
+  trSyncLive();
   var L = trSession.lines[play.li];
   if (game.turn() !== L.side) return;
   var atPly = (play.phase === 'line') ? play.ply : play.rq[0];

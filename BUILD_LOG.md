@@ -36,10 +36,10 @@ Fetch it directly:
 
 ---
 
-## CURRENT STATE — 2026-09-14 (rev 15)
+## CURRENT STATE — 2026-09-21 (rev 16)
 
 - Live: https://cory-harelson.github.io/chess-trainer/
-- HEAD: `<this commit>` · `index.html` = 936,792 bytes
+- HEAD: `<this commit>` · `index.html` = 942,402 bytes (sha256 0bf6ff4e…)
 - Validation: 2,110 non-partial lines replayed strictly through the embedded chess.js —
   0 illegal moves, 0 non-canonical SANs; 2,142 chapterId refs, all resolving; 32 partials;
   0 prefix/exact duplicates within the custom course's non-Quickstarter chapters AND
@@ -72,7 +72,14 @@ Fetch it directly:
 - Explicit chapter support — `course.chapters` + per-variation `chapterId` wins over
   the legacy name-pattern heuristic
 - Live-session persistence — `visibilitychange` / `pagehide` snapshot to localStorage,
-  restored by `trTryRestore()`
+  restored by `trTryRestore()` (carries each line's `removed` flag)
+- Trainer session list (rev 16): course link ↗ sits LEFT of the line name, × far right, both
+  32px tap targets; removed lines are parked in a "Removed from this session" section at the
+  bottom of the list with a `↩ Restore` button (`trRestoreLine()`)
+- Mid-line browsing (rev 16): ◀ ▶ |◀ ▶| and the move strip work during a live trainer line,
+  bounded to the moves already played (`moveStack` never holds unplayed moves, so nothing
+  leaks). Board is read-only while behind live; any board tap snaps back. `trSyncLive()`
+  guards every trainer routine that touches `game`; `setStatus()` parks messages while browsing
 - Android back-gesture trap — history sentinel + `overscroll-behavior: none`
 - SAN canonicalization + `{sloppy: true}` parse fallback in `trApply()`
 - Black Lion move order normalized: 46 transposable lines use `3...Nbd7 4.Nf3 e5`.
@@ -84,6 +91,53 @@ Fetch it directly:
   line from the matches panel or All Sections (jumpStack snapshots, explorer tab only)
 
 ## CHANGE LOG (newest first)
+
+### 2026-09-21 (rev 16) — session-list tap targets, restore removed lines, mid-line ◀ ▶ browsing
+
+**Cory's report (mobile):** the ↗ course link and the × remove button sat side by side and
+were tiny — a mis-tap on × dropped a line from the session with no way back. Separately, when
+he gets interrupted mid-line he loses track of how he got to the position and wanted ◀ ▶ to
+work — but only up to the current move, never past it.
+
+**Changes (UI only — `window.COURSES_DB` byte-identical to rev 15, 0 data edits):**
+
+1. **Row layout** (`renderLineList`, CSS `.tr-line .rm` / `.tr-line a.golink.sm`): ↗ moved
+   to the LEFT of the line name (after the status icon); × stays far right with `margin-left:
+   14px`. Both are now 32×32 flex-centered tap targets. Row padding tightened to
+   `2px 9px 2px 6px` so rows don't grow.
+2. **Restore removed lines** (`trRestoreLine(i)`): removed lines render in a dashed-rule
+   section "Removed from this session (N)" at the bottom of `#tr-linelist`, struck-through,
+   with a `↩ Restore` button. Restore clears `L.removed`, pushes an unpassed line onto the end
+   of `queue` (unless already in queue/failedNext/on the board), re-calls `trShowOverlay` if
+   sitting on a review so "Finish session" flips back to "Next line", and `trSnapSave()`s.
+   If `play` is null (deck momentarily empty) it kicks `trAdvance` via `later()` — the token
+   guard prevents a double-advance. Removing the LAST active line still finishes the session
+   (summary, not restorable) — accepted; the summary already counts removed lines.
+   `trRemoveLine`'s status now says the line can be restored from the bottom of the list.
+3. **Mid-line browsing** (`goTo`, `setStatus`, new `trBrowseEnd`/`trSyncLive`):
+   - `goTo` no longer returns early during a live line; it clamps to `[0, moveStack.length]`
+     as before. Because `trApply` only ever pushes moves as they are played, `moveStack.length`
+     IS the live position — there is nothing past it to reveal.
+   - Leaving live saves the current `#tr-status` into `play.browsing` and shows
+     "◀ Looking back at N… — tap the board or ▶| to return to your move" (forced write).
+     While browsing, `setStatus()` parks new trainer messages into `play.browsing` instead of
+     the DOM; `trBrowseEnd()` delivers the latest one when you return. So an opponent move or
+     "Your move" prompt that fires mid-browse is never lost or stale.
+   - `trSyncLive()` rebuilds `game` from `moveStack` if `ptr !== moveStack.length` and ends
+     browsing. Called at the top of `trApply`, `trRedrillNext`, `trWalkForward.step`,
+     `trLineDone`, the hint handler, and `trUserMove` (which returns false there — a tap while
+     browsing only snaps back, it never moves). Board `pointerdown` also snaps back before
+     selecting a piece so `showLegalTargets` never runs on a stale position.
+   - `trPlayLine` initialises `browsing: null`; `trResume` clears it so a parked status can't
+     leak across a tab switch.
+
+**Verification:** node `--check` on all 3 inline scripts; jsdom behavioural test (Madman's
+Philidor lines, black to move): 24/24 — step back/forward/Home, cannot pass live, board tap
+snaps back with no move, status save/park/restore, `trApply` mid-browse syncs first,
+remove → queue shrinks → removed section renders → restore → queue restored, removing the
+current line advances and is restorable, snapshot carries `removed`. `COURSES_DB` line
+diffed byte-equal to rev 15. Shipped from a mobile session (no Chrome) — Cory uploads via
+`github.com/cory-harelson/chess-trainer/upload/main`.
 
 ### 2026-09-14 (rev 15) — Tame Lion 6.Bg5 #4 flagged SKIP (transposition conflict with #5)
 

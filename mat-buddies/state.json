@@ -1,0 +1,19 @@
+{
+ "roster": [
+  {
+   "id": "max",
+   "name": "Max"
+  },
+  {
+   "id": "moose",
+   "name": "Moose"
+  },
+  {
+   "id": "jacob",
+   "name": "Jacob"
+  }
+ ],
+ "weeks": {},
+ "lastTime": 0,
+ "seen": []
+}

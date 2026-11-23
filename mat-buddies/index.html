@@ -95,11 +95,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
     <input id="newkid" type="text" maxlength="24" placeholder="Name" autocomplete="off">
     <button id="addkid" type="button">Add</button>
   </div>
-  <p class="foot">A fresh, blank week starts every Sunday. Changes save as soon as you tap, and the page refreshes itself every few seconds.</p>
+  <p class="foot">A fresh, blank week starts every Sunday. Changes save as soon as you tap, and everyone's phone updates within a few seconds.</p>
 </div>
 <script>
 (function () {
-  const STORE = "https://jsonblob.com/api/jsonBlob/__BLOB_ID__";
+  // Taps are published to a public relay (ntfy.sh) and replayed by every phone.
+  // A GitHub Action folds them into state.json every few minutes for safekeeping.
+  const TOPIC = "https://ntfy.sh/mat-buddies-ch7q4xk2m9";
+  const STATE = "https://raw.githubusercontent.com/cory-harelson/chess-trainer/main/mat-buddies/state.json";
   const DEFAULT_ROSTER = [{ id: "max", name: "Max" }, { id: "moose", name: "Moose" }, { id: "jacob", name: "Jacob" }];
   const DAYS = [["mon","Monday"],["tue","Tuesday"],["wed","Wednesday"],["thu","Thursday"],["fri","Friday"],["sat","Saturday"]];
   const $ = (id) => document.getElementById(id);
@@ -114,33 +117,34 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
   const fmt = (d, o) => d.toLocaleDateString(undefined, o);
   const thisMonday = mondayFor(new Date());
   let monday = new Date(thisMonday);
-  let roster = DEFAULT_ROSTER.slice(), entries = {}, busy = 0, loadedOnce = false;
-  let chain = Promise.resolve();
 
-  async function getStore() {
-    const r = await fetch(STORE, { cache: "no-store", headers: { "Accept": "application/json" } });
-    if (!r.ok) throw new Error("get " + r.status);
-    const j = await r.json();
-    if (!j.weeks || typeof j.weeks !== "object") j.weeks = {};
-    if (!Array.isArray(j.roster) || !j.roster.length) j.roster = DEFAULT_ROSTER.slice();
-    return j;
+  let base = { roster: DEFAULT_ROSTER.slice(), weeks: {}, lastTime: 0, seen: [] };
+  let events = [];            // relay messages after base
+  let local = [];             // my taps not yet seen on the relay
+  let baseAt = 0, loadedOnce = false, polling = false;
+
+  function applyEvent(st, e) {
+    if (!e || typeof e !== "object") return;
+    if (e.t === "set" && /^\d{4}-\d{2}-\d{2}$/.test(e.week) && DAYS.some((d) => d[0] === e.day) && (e.f === "k" || e.f === "a")) {
+      const wk = st.weeks[e.week] = st.weeks[e.week] || {};
+      const kd = wk[e.kid] = wk[e.kid] || {};
+      const dd = kd[e.day] = kd[e.day] || {};
+      dd[e.f] = !!e.v;
+    } else if (e.t === "addkid" && typeof e.id === "string" && typeof e.name === "string") {
+      if (!st.roster.some((k) => k.id === e.id)) st.roster.push({ id: e.id.slice(0, 40), name: e.name.slice(0, 24) });
+    }
   }
-  async function putStore(j) {
-    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 120);
-    const keep = iso(cutoff);
-    Object.keys(j.weeks).forEach((w) => { if (w < keep) delete j.weeks[w]; });
-    const r = await fetch(STORE, { method: "PUT", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(j) });
-    if (!r.ok) throw new Error("put " + r.status);
-  }
-  // Read the latest copy, apply one change, write it back. Changes queue so taps never overlap.
-  function mutate(fn) {
-    busy++;
-    const p = chain.then(async () => { const j = await getStore(); fn(j); await putStore(j); return j; });
-    chain = p.catch(() => {});
-    return p.finally(() => { busy--; });
+  function current() {
+    const st = JSON.parse(JSON.stringify(base));
+    events.forEach((m) => applyEvent(st, m.e));
+    local.forEach((e) => applyEvent(st, e));
+    return st;
   }
 
   function render() {
+    const st = current();
+    const roster = st.roster;
+    const entries = st.weeks[iso(monday)] || {};
     const sat = new Date(monday); sat.setDate(sat.getDate() + 5);
     $("weeklabel").textContent = "Week of " + fmt(monday, { month: "short", day: "numeric" }) + " – " + fmt(sat, { month: "short", day: "numeric" });
     const diff = Math.round((monday - thisMonday) / 864e5 / 7);
@@ -169,7 +173,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
           b.type = "button"; b.className = "chip " + f; b.textContent = txt;
           b.setAttribute("aria-pressed", v[f] ? "true" : "false");
           b.setAttribute("aria-label", kid.name + ", " + label + ", " + txt + " class");
-          b.addEventListener("click", () => toggle(kid.id, key, f));
+          b.addEventListener("click", () => send({ t: "set", week: iso(monday), kid: kid.id, day: key, f, v: !v[f] }));
           chips.appendChild(b);
         });
         row.append(nm, chips); card.appendChild(row);
@@ -184,59 +188,76 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
     });
   }
 
-  function toggle(kidId, day, f) {
-    const week = iso(monday);
-    const cur = entries[kidId] ? JSON.parse(JSON.stringify(entries[kidId])) : {};
-    cur[day] = Object.assign({}, cur[day]); cur[day][f] = !cur[day][f];
-    const val = cur[day][f];
-    entries[kidId] = cur;
+  async function send(e) {
+    e.n = Math.random().toString(36).slice(2, 10);
+    local.push(e);
     render();
     statusEl.textContent = "Saving…";
-    mutate((j) => {
-      const wk = j.weeks[week] = j.weeks[week] || {};
-      const kd = wk[kidId] = wk[kidId] || {};
-      const dd = kd[day] = kd[day] || {};
-      dd[f] = val;
-    }).then((j) => { statusEl.textContent = "Saved."; apply(j); })
-      .catch(() => { statusEl.textContent = "That tap didn't save. Check your signal and tap again."; });
-  }
-
-  function apply(j) {
-    roster = j.roster;
-    entries = JSON.parse(JSON.stringify(j.weeks[iso(monday)] || {}));
-    render();
-  }
-
-  async function load() {
-    if (busy) return;
-    const week = iso(monday);
     try {
-      const j = await getStore();
-      if (busy || week !== iso(monday)) return;
-      apply(j);
-      if (!loadedOnce || /Loading|reach/.test(statusEl.textContent)) statusEl.textContent = "";
-      loadedOnce = true;
-    } catch (e) {
-      statusEl.textContent = "Can't reach the schedule right now. It'll retry in a few seconds.";
+      const r = await fetch(TOPIC, { method: "POST", body: JSON.stringify(e) });
+      if (!r.ok) throw new Error(r.status);
+      statusEl.textContent = "Saved.";
+      return true;
+    } catch (err) {
+      local = local.filter((x) => x !== e);
+      render();
+      statusEl.textContent = "That didn't save. Check your signal and try again.";
+      return false;
     }
   }
 
-  function goWeek(delta) { monday.setDate(monday.getDate() + 7 * delta); entries = {}; render(); statusEl.textContent = "Loading…"; load(); }
+  async function loadBase() {
+    const r = await fetch(STATE + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("state " + r.status);
+    const j = await r.json();
+    if (!Array.isArray(j.roster) || !j.roster.length) j.roster = DEFAULT_ROSTER.slice();
+    if (!j.weeks || typeof j.weeks !== "object") j.weeks = {};
+    j.seen = Array.isArray(j.seen) ? j.seen : [];
+    j.lastTime = +j.lastTime || 0;
+    base = j; baseAt = Date.now();
+  }
+  async function poll() {
+    if (polling) return;
+    polling = true;
+    try {
+      if (!loadedOnce || Date.now() - baseAt > 5 * 60 * 1000) await loadBase();
+      const since = base.lastTime ? String(Math.max(0, base.lastTime - 1)) : "12h";
+      const r = await fetch(TOPIC + "/json?poll=1&since=" + since, { cache: "no-store" });
+      if (!r.ok) throw new Error("relay " + r.status);
+      const txt = await r.text();
+      const seen = new Set(base.seen);
+      const next = [];
+      txt.split("\n").forEach((line) => {
+        if (!line.trim()) return;
+        let m; try { m = JSON.parse(line); } catch (_) { return; }
+        if (m.event !== "message" || seen.has(m.id) || m.time < base.lastTime) return;
+        let e; try { e = JSON.parse(m.message); } catch (_) { return; }
+        next.push({ id: m.id, time: m.time, e });
+      });
+      events = next;
+      const got = new Set(next.map((m) => m.e && m.e.n));
+      local = local.filter((e) => !got.has(e.n));
+      render();
+      if (!loadedOnce || /Loading|reach/.test(statusEl.textContent)) statusEl.textContent = "";
+      loadedOnce = true;
+    } catch (err) {
+      statusEl.textContent = "Can't reach the schedule right now. It'll retry in a few seconds.";
+    } finally { polling = false; }
+  }
+
+  function goWeek(delta) { monday.setDate(monday.getDate() + 7 * delta); render(); }
   $("prev").addEventListener("click", () => goWeek(-1));
   $("next").addEventListener("click", () => goWeek(1));
-  $("addkid").addEventListener("click", () => {
-    const name = $("newkid").value.trim().slice(0, 24);
+  $("addkid").addEventListener("click", async () => {
+    const name = $("newkid").value.trim().replace(/[<>]/g, "").slice(0, 24);
     const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
     if (!name || !id) { statusEl.textContent = "Type a name first."; return; }
-    if (roster.some((k) => k.id === id)) { statusEl.textContent = name + " is already on the list."; return; }
-    statusEl.textContent = "Adding " + name + "…";
-    mutate((j) => { if (!j.roster.some((k) => k.id === id)) j.roster.push({ id, name }); })
-      .then((j) => { $("newkid").value = ""; statusEl.textContent = "Added " + name + "."; apply(j); })
-      .catch(() => { statusEl.textContent = "Couldn't add " + name + ". Try again."; });
+    if (current().roster.some((k) => k.id === id)) { statusEl.textContent = name + " is already on the list."; return; }
+    if (await send({ t: "addkid", id, name })) { $("newkid").value = ""; statusEl.textContent = "Added " + name + "."; }
   });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
-  render(); load();
-  setInterval(() => { if (!document.hidden) load(); }, 8000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+  render(); poll();
+  setInterval(() => { if (!document.hidden) poll(); }, 10000);
 })();
 </script>
 </body>

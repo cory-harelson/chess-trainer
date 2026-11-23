@@ -13,16 +13,9 @@ jobs:
           BODY='{"roster":[{"id":"max","name":"Max"},{"id":"moose","name":"Moose"},{"id":"jacob","name":"Jacob"}],"weeks":{}}'
           echo "=== jsonblob (browser UA)"
           curl -sS -D - -o /dev/null -A "$UA" -H "$O" -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d "$BODY" https://jsonblob.com/api/jsonBlob | grep -i -E '^HTTP|^location|access-control' || true
-          echo "=== extendsclass"
-          R=$(curl -sS -A "$UA" -H "$O" -X POST -H 'Content-Type: application/json' -d "$BODY" https://json.extendsclass.com/bin -D hdr.txt); cat hdr.txt | grep -i -E '^HTTP|access-control' ; echo "$R"
-          ID=$(echo "$R" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))' 2>/dev/null || true)
-          if [ -n "$ID" ]; then
-            echo "EXTENDSCLASS_ID=$ID"
-            curl -sS -A "$UA" -H "$O" https://json.extendsclass.com/bin/$ID -D - | grep -i -E '^HTTP|access-control|^\{' ; echo
-            curl -sS -A "$UA" -i -X OPTIONS -H "$O" -H 'Access-Control-Request-Method: PUT' -H 'Access-Control-Request-Headers: content-type' https://json.extendsclass.com/bin/$ID | grep -i -E '^HTTP|access-control' || true
-            curl -sS -A "$UA" -H "$O" -X PUT -H 'Content-Type: application/json' -d "$BODY" https://json.extendsclass.com/bin/$ID -w '\nPUT %{http_code}\n'
-          fi
-          echo "=== kvdb"
-          curl -sS -A "$UA" -X POST -d 'email=' https://kvdb.io -w '\nHTTP %{http_code}\n' || true
-          echo "=== keyvalue.immanuel.co"
-          curl -sS -A "$UA" -H "$O" -D - https://keyvalue.immanuel.co/api/KeyVal/GetAppKey -w '\n' | grep -i -E '^HTTP|access-control|^"' || true
+          echo "=== immanuel roundtrip"
+          K=$(curl -sS -A "$UA" https://keyvalue.immanuel.co/api/KeyVal/GetAppKey | tr -d '"')
+          echo "KEY=$K"
+          curl -sS -A "$UA" -H "$O" -X POST "https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/$K/2026-11-23_max/mon.k-tue.ka" -D - -o /dev/null | grep -i -E '^HTTP|access-control'
+          curl -sS -A "$UA" -H "$O" "https://keyvalue.immanuel.co/api/KeyVal/GetValue/$K/2026-11-23_max"; echo
+          curl -sS -A "$UA" -i -X OPTIONS -H "$O" -H 'Access-Control-Request-Method: POST' "https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/$K/x/y" | grep -i -E '^HTTP|access-control' || true

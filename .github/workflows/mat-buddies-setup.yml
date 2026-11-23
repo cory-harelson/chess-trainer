@@ -6,16 +6,11 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe no-login JSON stores
+      - name: Probe ntfy
         run: |
-          UA='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
           O='Origin: https://cory-harelson.github.io'
-          BODY='{"roster":[{"id":"max","name":"Max"},{"id":"moose","name":"Moose"},{"id":"jacob","name":"Jacob"}],"weeks":{}}'
-          echo "=== jsonblob (browser UA)"
-          curl -sS -D - -o /dev/null -A "$UA" -H "$O" -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d "$BODY" https://jsonblob.com/api/jsonBlob | grep -i -E '^HTTP|^location|access-control' || true
-          echo "=== immanuel roundtrip"
-          K=$(curl -sS -A "$UA" https://keyvalue.immanuel.co/api/KeyVal/GetAppKey | tr -d '"')
-          echo "KEY=$K"
-          curl -sS -A "$UA" -H "$O" -X POST -d "" "https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/$K/2026-11-23_max/mon.k-tue.ka" -D - -o /dev/null | grep -i -E '^HTTP|access-control'
-          curl -sS -A "$UA" -H "$O" "https://keyvalue.immanuel.co/api/KeyVal/GetValue/$K/2026-11-23_max"; echo
-          curl -sS -A "$UA" -i -X OPTIONS -H "$O" -H 'Access-Control-Request-Method: POST' "https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/$K/x/y" | grep -i -E '^HTTP|access-control' || true
+          T=matbuddies-probe-$RANDOM$RANDOM
+          curl -sS -D - -o pub.txt -H "$O" -H 'Content-Type: text/plain' -d '{"t":"set","week":"2026-11-23","kid":"max","day":"tue","f":"a","v":true}' https://ntfy.sh/$T | grep -i -E '^HTTP|access-control'
+          cat pub.txt; echo
+          sleep 2
+          curl -sS -D - -H "$O" "https://ntfy.sh/$T/json?poll=1&since=all" | grep -i -E '^HTTP|access-control|^\{'

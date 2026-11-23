@@ -3,31 +3,26 @@ on: workflow_dispatch
 permissions:
   contents: read
 jobs:
-  setup:
+  probe:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Create shared storage if needed, check it works from a browser origin
+      - name: Probe no-login JSON stores
         run: |
-          set -e
-          if grep -q "__BLOB_ID__" mat-buddies/index.html; then
-            HDRS=$(curl -sS -D - -o body.txt -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' \
-              -d '{"roster":[{"id":"max","name":"Max"},{"id":"moose","name":"Moose"},{"id":"jacob","name":"Jacob"}],"weeks":{}}' \
-              https://jsonblob.com/api/jsonBlob)
-            echo "$HDRS"
-            ID=$(echo "$HDRS" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}' | sed 's#.*/##')
-          else
-            ID=$(grep -o 'jsonBlob/[A-Za-z0-9-]*' mat-buddies/index.html | head -1 | sed 's#.*/##')
+          UA='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
+          O='Origin: https://cory-harelson.github.io'
+          BODY='{"roster":[{"id":"max","name":"Max"},{"id":"moose","name":"Moose"},{"id":"jacob","name":"Jacob"}],"weeks":{}}'
+          echo "=== jsonblob (browser UA)"
+          curl -sS -D - -o /dev/null -A "$UA" -H "$O" -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -d "$BODY" https://jsonblob.com/api/jsonBlob | grep -i -E '^HTTP|^location|access-control' || true
+          echo "=== extendsclass"
+          R=$(curl -sS -A "$UA" -H "$O" -X POST -H 'Content-Type: application/json' -d "$BODY" https://json.extendsclass.com/bin -D hdr.txt); cat hdr.txt | grep -i -E '^HTTP|access-control' ; echo "$R"
+          ID=$(echo "$R" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))' 2>/dev/null || true)
+          if [ -n "$ID" ]; then
+            echo "EXTENDSCLASS_ID=$ID"
+            curl -sS -A "$UA" -H "$O" https://json.extendsclass.com/bin/$ID -D - | grep -i -E '^HTTP|access-control|^\{' ; echo
+            curl -sS -A "$UA" -i -X OPTIONS -H "$O" -H 'Access-Control-Request-Method: PUT' -H 'Access-Control-Request-Headers: content-type' https://json.extendsclass.com/bin/$ID | grep -i -E '^HTTP|access-control' || true
+            curl -sS -A "$UA" -H "$O" -X PUT -H 'Content-Type: application/json' -d "$BODY" https://json.extendsclass.com/bin/$ID -w '\nPUT %{http_code}\n'
           fi
-          echo "BLOB_ID=$ID"
-          test -n "$ID"
-          echo "--- GET"; curl -sS https://jsonblob.com/api/jsonBlob/$ID; echo
-          echo "--- CORS preflight"
-          curl -sS -i -X OPTIONS -H 'Origin: https://cory-harelson.github.io' -H 'Access-Control-Request-Method: PUT' \
-            -H 'Access-Control-Request-Headers: content-type,accept' https://jsonblob.com/api/jsonBlob/$ID | grep -i -E '^HTTP|access-control' || true
-          echo "--- CORS on GET"
-          curl -sS -i -H 'Origin: https://cory-harelson.github.io' https://jsonblob.com/api/jsonBlob/$ID | grep -i -E '^HTTP|access-control' || true
-      - name: Check the live page
-        run: |
-          curl -sS -o page.html -w 'live page HTTP %{http_code}\n' https://cory-harelson.github.io/chess-trainer/mat-buddies/ || true
-          grep -o 'jsonBlob/[A-Za-z0-9_-]*' page.html | head -1 || echo "no store id on live page yet"
+          echo "=== kvdb"
+          curl -sS -A "$UA" -X POST -d 'email=' https://kvdb.io -w '\nHTTP %{http_code}\n' || true
+          echo "=== keyvalue.immanuel.co"
+          curl -sS -A "$UA" -H "$O" -D - https://keyvalue.immanuel.co/api/KeyVal/GetAppKey -w '\n' | grep -i -E '^HTTP|access-control|^"' || true

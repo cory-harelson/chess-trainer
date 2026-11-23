@@ -16,6 +16,6 @@ jobs:
           echo "=== immanuel roundtrip"
           K=$(curl -sS -A "$UA" https://keyvalue.immanuel.co/api/KeyVal/GetAppKey | tr -d '"')
           echo "KEY=$K"
-          curl -sS -A "$UA" -H "$O" -X POST "https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/$K/2026-11-23_max/mon.k-tue.ka" -D - -o /dev/null | grep -i -E '^HTTP|access-control'
+          curl -sS -A "$UA" -H "$O" -X POST -d "" "https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/$K/2026-11-23_max/mon.k-tue.ka" -D - -o /dev/null | grep -i -E '^HTTP|access-control'
           curl -sS -A "$UA" -H "$O" "https://keyvalue.immanuel.co/api/KeyVal/GetValue/$K/2026-11-23_max"; echo
           curl -sS -A "$UA" -i -X OPTIONS -H "$O" -H 'Access-Control-Request-Method: POST' "https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/$K/x/y" | grep -i -E '^HTTP|access-control' || true

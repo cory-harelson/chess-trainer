@@ -1,0 +1,24 @@
+name: Mat Buddies sync
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: mat-buddies-sync
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 mat-buddies/sync/sync.py
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet mat-buddies/state.json; then
+            git config user.name "mat-buddies-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Mat Buddies: save schedule" mat-buddies/state.json
+            git push
+          fi
+      - name: Check the live page
+        run: curl -sS -o /dev/null -w 'live page HTTP %{http_code}\n' https://cory-harelson.github.io/chess-trainer/mat-buddies/ || true

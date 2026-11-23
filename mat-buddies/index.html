@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mat Buddies</title>
+<meta name="description" content="Which days are our jiu-jitsu kids going to kids' class or adult class this week?">
+<meta property="og:title" content="Mat Buddies">
+<meta property="og:description" content="Tap your kid's schedule for the week. Adult class turns green when 2+ kids are going.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #f3f5f8; --card: #ffffff; --ink: #18202c; --muted: #5d6878; --line: #dde2ea;
+  --accent: #1f4fa8; --accent-soft: #e3ebfa; --kids: #0f7a55; --kids-soft: #def3ea;
+  --warn: #9a5b00; --warn-soft: #fbeed6;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #10141b; --card: #181e28; --ink: #e8ecf2; --muted: #9aa4b3; --line: #2a3240;
+    --accent: #7ea6f2; --accent-soft: #1f2d48; --kids: #5fd1a4; --kids-soft: #163a2e;
+    --warn: #f0b660; --warn-soft: #3a2b14; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(20px + env(safe-area-inset-top, 0px)); padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+h1 { font-family: var(--display); font-size: 2.4rem; line-height: 1; margin: 0; letter-spacing: .01em; text-transform: uppercase; }
+h1 .belt { display: inline-block; width: 42px; height: 10px; border-radius: 2px; background: var(--accent); vertical-align: middle; margin-left: 10px; position: relative; }
+h1 .belt::after { content: ""; position: absolute; right: 6px; top: 0; width: 10px; height: 10px; background: var(--ink); }
+.lede { color: var(--muted); margin: 0; max-width: 62ch; }
+.lede b { color: var(--ink); }
+.weekbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+button { font-family: var(--body); }
+.weekbar button { font-weight: 600; font-size: 14px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.weekbar button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.weeklabel { font-family: var(--display); font-size: 1.5rem; text-transform: uppercase; letter-spacing: .02em; }
+.tag { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.status { font-size: 13px; color: var(--muted); min-height: 1.2em; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.legend b { color: var(--ink); font-weight: 600; }
+.days { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.day { background: var(--card); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; min-width: 0; }
+.day.today { border-color: var(--accent); border-width: 2px; }
+.dayhead { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 14px 8px; }
+.dayname { font-family: var(--display); font-size: 1.45rem; text-transform: uppercase; letter-spacing: .02em; }
+.daydate { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.kidrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); }
+.kidname { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.chips { display: flex; gap: 6px; flex-shrink: 0; }
+.chip { font-weight: 600; font-size: 13px; border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 8px 12px; cursor: pointer; min-width: 64px; }
+.chip[aria-pressed="true"].k { background: var(--kids-soft); border-color: var(--kids); color: var(--kids); }
+.chip[aria-pressed="true"].a { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.verdict { margin-top: auto; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 13.5px; border-radius: 0 0 11px 11px; }
+.verdict.go { background: var(--kids-soft); color: var(--kids); font-weight: 600; }
+.verdict.warn { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+.verdict.none { color: var(--muted); }
+.addrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.addrow input { font: 16px var(--body); padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); width: 180px; }
+.addrow button { font-weight: 600; font-size: 14px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--card); cursor: pointer; }
+.foot { font-size: 13px; color: var(--muted); margin: 0; }
+@media (max-width: 420px) { .chip { min-width: 56px; padding: 8px 10px; } h1 { font-size: 2rem; } }
+@media (prefers-reduced-motion: no-preference) { .chip { transition: background .12s, border-color .12s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mat Buddies<span class="belt" aria-hidden="true"></span></h1>
+    <p class="lede">Tap what your kid is doing each day. <b>Adult</b> means "adult class, but only if another kid goes too." When two or more kids pick Adult on the same day, that day turns green and it's a go.</p>
+  </header>
+  <div class="weekbar">
+    <button id="prev" type="button">← Prev</button>
+    <span class="weeklabel" id="weeklabel">This week</span>
+    <span class="tag" id="weektag" hidden>This week</span>
+    <button id="next" type="button">Next →</button>
+  </div>
+  <div class="legend">
+    <span><b>Kids</b> = kids' class</span>
+    <span><b>Adult</b> = adult class if a buddy's there</span>
+    <span>Nothing picked = not coming</span>
+  </div>
+  <div class="status" id="status" role="status">Loading…</div>
+  <div id="days" class="days"></div>
+  <div class="addrow">
+    <label for="newkid" class="foot">New kid joining?</label>
+    <input id="newkid" type="text" maxlength="24" placeholder="Name" autocomplete="off">
+    <button id="addkid" type="button">Add</button>
+  </div>
+  <p class="foot">A fresh, blank week starts every Sunday. Changes save as soon as you tap, and the page refreshes itself every few seconds.</p>
+</div>
+<script>
+(function () {
+  const STORE = "https://jsonblob.com/api/jsonBlob/__BLOB_ID__";
+  const DEFAULT_ROSTER = [{ id: "max", name: "Max" }, { id: "moose", name: "Moose" }, { id: "jacob", name: "Jacob" }];
+  const DAYS = [["mon","Monday"],["tue","Tuesday"],["wed","Wednesday"],["thu","Thursday"],["fri","Friday"],["sat","Saturday"]];
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $("status");
+  function mondayFor(d) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const dow = x.getDay();
+    if (dow === 0) x.setDate(x.getDate() + 1); else x.setDate(x.getDate() - (dow - 1));
+    return x;
+  }
+  const iso = (d) => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  const fmt = (d, o) => d.toLocaleDateString(undefined, o);
+  const thisMonday = mondayFor(new Date());
+  let monday = new Date(thisMonday);
+  let roster = DEFAULT_ROSTER.slice(), entries = {}, busy = 0, loadedOnce = false;
+  let chain = Promise.resolve();
+
+  async function getStore() {
+    const r = await fetch(STORE, { cache: "no-store", headers: { "Accept": "application/json" } });
+    if (!r.ok) throw new Error("get " + r.status);
+    const j = await r.json();
+    if (!j.weeks || typeof j.weeks !== "object") j.weeks = {};
+    if (!Array.isArray(j.roster) || !j.roster.length) j.roster = DEFAULT_ROSTER.slice();
+    return j;
+  }
+  async function putStore(j) {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 120);
+    const keep = iso(cutoff);
+    Object.keys(j.weeks).forEach((w) => { if (w < keep) delete j.weeks[w]; });
+    const r = await fetch(STORE, { method: "PUT", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(j) });
+    if (!r.ok) throw new Error("put " + r.status);
+  }
+  // Read the latest copy, apply one change, write it back. Changes queue so taps never overlap.
+  function mutate(fn) {
+    busy++;
+    const p = chain.then(async () => { const j = await getStore(); fn(j); await putStore(j); return j; });
+    chain = p.catch(() => {});
+    return p.finally(() => { busy--; });
+  }
+
+  function render() {
+    const sat = new Date(monday); sat.setDate(sat.getDate() + 5);
+    $("weeklabel").textContent = "Week of " + fmt(monday, { month: "short", day: "numeric" }) + " – " + fmt(sat, { month: "short", day: "numeric" });
+    const diff = Math.round((monday - thisMonday) / 864e5 / 7);
+    $("weektag").hidden = diff !== 0 && diff !== 1;
+    $("weektag").textContent = diff === 0 ? "This week" : "Next week";
+    const wrap = $("days"); wrap.textContent = "";
+    const todayIso = iso(new Date());
+    DAYS.forEach(([key, label], i) => {
+      const date = new Date(monday); date.setDate(date.getDate() + i);
+      const card = document.createElement("section");
+      card.className = "day" + (iso(date) === todayIso ? " today" : "");
+      const head = document.createElement("div"); head.className = "dayhead";
+      const n = document.createElement("span"); n.className = "dayname"; n.textContent = label;
+      const dt = document.createElement("span"); dt.className = "daydate"; dt.textContent = fmt(date, { month: "short", day: "numeric" });
+      head.append(n, dt); card.appendChild(head);
+      const adults = [], kids = [];
+      roster.forEach((kid) => {
+        const v = (entries[kid.id] && entries[kid.id][key]) || {};
+        if (v.a) adults.push(kid.name);
+        if (v.k) kids.push(kid.name);
+        const row = document.createElement("div"); row.className = "kidrow";
+        const nm = document.createElement("span"); nm.className = "kidname"; nm.textContent = kid.name;
+        const chips = document.createElement("div"); chips.className = "chips";
+        [["k","Kids"],["a","Adult"]].forEach(([f, txt]) => {
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "chip " + f; b.textContent = txt;
+          b.setAttribute("aria-pressed", v[f] ? "true" : "false");
+          b.setAttribute("aria-label", kid.name + ", " + label + ", " + txt + " class");
+          b.addEventListener("click", () => toggle(kid.id, key, f));
+          chips.appendChild(b);
+        });
+        row.append(nm, chips); card.appendChild(row);
+      });
+      const ver = document.createElement("div");
+      if (adults.length >= 2) { ver.className = "verdict go"; ver.textContent = "Adult class is a go: " + adults.join(" + "); }
+      else if (adults.length === 1) { ver.className = "verdict warn"; ver.textContent = adults[0] + " wants adult class. Needs a buddy."; }
+      else { ver.className = "verdict none"; ver.textContent = kids.length ? "Kids' class: " + kids.join(", ") : "Nobody's down yet."; }
+      if (adults.length >= 1 && kids.length) ver.textContent += " · Kids' class: " + kids.join(", ");
+      card.appendChild(ver);
+      wrap.appendChild(card);
+    });
+  }
+
+  function toggle(kidId, day, f) {
+    const week = iso(monday);
+    const cur = entries[kidId] ? JSON.parse(JSON.stringify(entries[kidId])) : {};
+    cur[day] = Object.assign({}, cur[day]); cur[day][f] = !cur[day][f];
+    const val = cur[day][f];
+    entries[kidId] = cur;
+    render();
+    statusEl.textContent = "Saving…";
+    mutate((j) => {
+      const wk = j.weeks[week] = j.weeks[week] || {};
+      const kd = wk[kidId] = wk[kidId] || {};
+      const dd = kd[day] = kd[day] || {};
+      dd[f] = val;
+    }).then((j) => { statusEl.textContent = "Saved."; apply(j); })
+      .catch(() => { statusEl.textContent = "That tap didn't save. Check your signal and tap again."; });
+  }
+
+  function apply(j) {
+    roster = j.roster;
+    entries = JSON.parse(JSON.stringify(j.weeks[iso(monday)] || {}));
+    render();
+  }
+
+  async function load() {
+    if (busy) return;
+    const week = iso(monday);
+    try {
+      const j = await getStore();
+      if (busy || week !== iso(monday)) return;
+      apply(j);
+      if (!loadedOnce || /Loading|reach/.test(statusEl.textContent)) statusEl.textContent = "";
+      loadedOnce = true;
+    } catch (e) {
+      statusEl.textContent = "Can't reach the schedule right now. It'll retry in a few seconds.";
+    }
+  }
+
+  function goWeek(delta) { monday.setDate(monday.getDate() + 7 * delta); entries = {}; render(); statusEl.textContent = "Loading…"; load(); }
+  $("prev").addEventListener("click", () => goWeek(-1));
+  $("next").addEventListener("click", () => goWeek(1));
+  $("addkid").addEventListener("click", () => {
+    const name = $("newkid").value.trim().slice(0, 24);
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+    if (!name || !id) { statusEl.textContent = "Type a name first."; return; }
+    if (roster.some((k) => k.id === id)) { statusEl.textContent = name + " is already on the list."; return; }
+    statusEl.textContent = "Adding " + name + "…";
+    mutate((j) => { if (!j.roster.some((k) => k.id === id)) j.roster.push({ id, name }); })
+      .then((j) => { $("newkid").value = ""; statusEl.textContent = "Added " + name + "."; apply(j); })
+      .catch(() => { statusEl.textContent = "Couldn't add " + name + ". Try again."; });
+  });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+  render(); load();
+  setInterval(() => { if (!document.hidden) load(); }, 8000);
+})();
+</script>
+</body>
+</html>

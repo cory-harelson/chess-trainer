@@ -13,7 +13,43 @@
    "name": "Jacob"
   }
  ],
- "weeks": {},
- "lastTime": 0,
- "seen": []
+ "weeks": {
+  "2026-11-23": {
+   "max": {
+    "tue": {
+     "a": false,
+     "k": false
+    }
+   },
+   "jacob": {
+    "mon": {
+     "k": true
+    },
+    "tue": {
+     "k": true
+    },
+    "wed": {
+     "k": true
+    }
+   },
+   "moose": {
+    "mon": {
+     "k": true
+    }
+   }
+  }
+ },
+ "lastTime": 1795472102,
+ "seen": [
+  "T0mOmjggkMCm",
+  "UxhGdlN2nBsk",
+  "aWDaHf87TTGK",
+  "PxEtcxBkgxrf",
+  "2up2z1rhF62y",
+  "kjTYtX4uyjZL",
+  "J1EWfQLzkSxQ",
+  "BQlcO2ubTW5S",
+  "r6cV5Q2EaFxl",
+  "l1AEp2APM7fo"
+ ]
 }

@@ -12,7 +12,7 @@
 <style>
 :root {
   --bg: #f3f5f8; --card: #ffffff; --ink: #18202c; --muted: #5d6878; --line: #dde2ea;
-  --accent: #1f4fa8; --accent-soft: #e3ebfa; --kids: #0f7a55; --kids-soft: #def3ea;
+  --accent: #1f4fa8; --accent-soft: #e3ebfa; --kids: #0f7a55; --kids-soft: #def3ea; --hs: #6b3fa0; --hs-soft: #efe6fa;
   --warn: #9a5b00; --warn-soft: #fbeed6;
   --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
   --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -20,7 +20,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #10141b; --card: #181e28; --ink: #e8ecf2; --muted: #9aa4b3; --line: #2a3240;
-    --accent: #7ea6f2; --accent-soft: #1f2d48; --kids: #5fd1a4; --kids-soft: #163a2e;
+    --accent: #7ea6f2; --accent-soft: #1f2d48; --kids: #5fd1a4; --kids-soft: #163a2e; --hs: #c7a6f2; --hs-soft: #2e2142;
     --warn: #f0b660; --warn-soft: #3a2b14; color-scheme: dark; }
 }
 * { box-sizing: border-box; }
@@ -53,11 +53,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .dayhead { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 14px 8px; }
 .dayname { font-family: var(--display); font-size: 1.45rem; text-transform: uppercase; letter-spacing: .02em; }
 .daydate { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-.kidrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); }
+.kidrow { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 10px; padding: 8px 14px; border-top: 1px solid var(--line); }
 .kidname { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.chips { display: flex; gap: 6px; flex-shrink: 0; }
+.chips { display: flex; gap: 6px; flex-shrink: 0; margin-left: auto; }
 .chip { font-weight: 600; font-size: 13px; border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 8px 12px; cursor: pointer; min-width: 64px; }
 .chip[aria-pressed="true"].k { background: var(--kids-soft); border-color: var(--kids); color: var(--kids); }
+.chip[aria-pressed="true"].h { background: var(--hs-soft); border-color: var(--hs); color: var(--hs); }
 .chip[aria-pressed="true"].a { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .verdict { margin-top: auto; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 13.5px; border-radius: 0 0 11px 11px; }
 .verdict.go { background: var(--kids-soft); color: var(--kids); font-weight: 600; }
@@ -84,6 +85,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
     <button id="next" type="button">Next →</button>
   </div>
   <div class="legend">
+    <span><b>Homeschool</b> = noon homeschool class (Mon, Wed, Fri)</span>
     <span><b>Kids</b> = kids' class</span>
     <span><b>Adult</b> = adult class if a buddy's there</span>
     <span>Nothing picked = not coming</span>
@@ -105,6 +107,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
   const STATE = "https://raw.githubusercontent.com/cory-harelson/chess-trainer/main/mat-buddies/state.json";
   const DEFAULT_ROSTER = [{ id: "max", name: "Max" }, { id: "moose", name: "Moose" }, { id: "jacob", name: "Jacob" }];
   const DAYS = [["mon","Monday"],["tue","Tuesday"],["wed","Wednesday"],["thu","Thursday"],["fri","Friday"],["sat","Saturday"]];
+  const HS_DAYS = new Set(["mon", "wed", "fri"]);
   const $ = (id) => document.getElementById(id);
   const statusEl = $("status");
   function mondayFor(d) {
@@ -125,7 +128,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 
   function applyEvent(st, e) {
     if (!e || typeof e !== "object") return;
-    if (e.t === "set" && /^\d{4}-\d{2}-\d{2}$/.test(e.week) && DAYS.some((d) => d[0] === e.day) && (e.f === "k" || e.f === "a")) {
+    if (e.t === "set" && /^\d{4}-\d{2}-\d{2}$/.test(e.week) && DAYS.some((d) => d[0] === e.day) && (e.f === "k" || e.f === "a" || (e.f === "h" && HS_DAYS.has(e.day)))) {
       const wk = st.weeks[e.week] = st.weeks[e.week] || {};
       const kd = wk[e.kid] = wk[e.kid] || {};
       const dd = kd[e.day] = kd[e.day] || {};
@@ -160,15 +163,17 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
       const n = document.createElement("span"); n.className = "dayname"; n.textContent = label;
       const dt = document.createElement("span"); dt.className = "daydate"; dt.textContent = fmt(date, { month: "short", day: "numeric" });
       head.append(n, dt); card.appendChild(head);
-      const adults = [], kids = [];
+      const adults = [], kids = [], hs = [];
+      const opts = (HS_DAYS.has(key) ? [["h","Homeschool"]] : []).concat([["k","Kids"],["a","Adult"]]);
       roster.forEach((kid) => {
         const v = (entries[kid.id] && entries[kid.id][key]) || {};
         if (v.a) adults.push(kid.name);
         if (v.k) kids.push(kid.name);
+        if (v.h && HS_DAYS.has(key)) hs.push(kid.name);
         const row = document.createElement("div"); row.className = "kidrow";
         const nm = document.createElement("span"); nm.className = "kidname"; nm.textContent = kid.name;
         const chips = document.createElement("div"); chips.className = "chips";
-        [["k","Kids"],["a","Adult"]].forEach(([f, txt]) => {
+        opts.forEach(([f, txt]) => {
           const b = document.createElement("button");
           b.type = "button"; b.className = "chip " + f; b.textContent = txt;
           b.setAttribute("aria-pressed", v[f] ? "true" : "false");
@@ -179,10 +184,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
         row.append(nm, chips); card.appendChild(row);
       });
       const ver = document.createElement("div");
-      if (adults.length >= 2) { ver.className = "verdict go"; ver.textContent = "Adult class is a go: " + adults.join(" + "); }
-      else if (adults.length === 1) { ver.className = "verdict warn"; ver.textContent = adults[0] + " wants adult class. Needs a buddy."; }
-      else { ver.className = "verdict none"; ver.textContent = kids.length ? "Kids' class: " + kids.join(", ") : "Nobody's down yet."; }
-      if (adults.length >= 1 && kids.length) ver.textContent += " · Kids' class: " + kids.join(", ");
+      const parts = [];
+      if (hs.length) parts.push("Homeschool: " + hs.join(", "));
+      if (kids.length) parts.push("Kids' class: " + kids.join(", "));
+      if (adults.length >= 2) { ver.className = "verdict go"; parts.push("Adult class is a go: " + adults.join(" + ")); }
+      else if (adults.length === 1) { ver.className = "verdict warn"; parts.push(adults[0] + " wants adult class. Needs a buddy."); }
+      else ver.className = "verdict none";
+      ver.textContent = parts.length ? parts.join(" · ") : "Nobody's down yet.";
       card.appendChild(ver);
       wrap.appendChild(card);
     });

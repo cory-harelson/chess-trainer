@@ -16,7 +16,7 @@ for line in lines:
     try: e = json.loads(m["message"])
     except Exception: e = None
     if isinstance(e, dict):
-        if e.get("t") == "set" and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(e.get("week"))) and e.get("day") in DAYS and e.get("f") in ("k", "a"):
+        if e.get("t") == "set" and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(e.get("week"))) and e.get("day") in DAYS and (e.get("f") in ("k", "a") or (e.get("f") == "h" and e.get("day") in ("mon", "wed", "fri"))):
             st["weeks"].setdefault(e["week"], {}).setdefault(str(e["kid"])[:40], {}).setdefault(e["day"], {})[e["f"]] = bool(e.get("v"))
         elif e.get("t") == "addkid" and isinstance(e.get("id"), str) and isinstance(e.get("name"), str):
             if not any(k["id"] == e["id"] for k in st["roster"]):

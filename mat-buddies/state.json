@@ -38,12 +38,15 @@
      "k": true
     },
     "tue": {
-     "k": false
+     "k": true
+    },
+    "wed": {
+     "h": true
     }
    }
   }
  },
- "lastTime": 1795555978,
+ "lastTime": 1795615939,
  "seen": [
   "T0mOmjggkMCm",
   "UxhGdlN2nBsk",
@@ -58,6 +61,8 @@
   "9i1dAVaGrsOT",
   "3L4qeZR35PYD",
   "ik82p6NZ8RN5",
-  "mjSYgn1rmeqf"
+  "mjSYgn1rmeqf",
+  "a6EtS0MBq5wW",
+  "5ncQ5xGtinMh"
  ]
 }

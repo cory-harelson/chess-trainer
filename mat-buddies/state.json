@@ -29,7 +29,8 @@
      "k": false
     },
     "wed": {
-     "k": true
+     "k": true,
+     "h": true
     }
    },
    "moose": {
@@ -37,12 +38,12 @@
      "k": true
     },
     "tue": {
-     "k": true
+     "k": false
     }
    }
   }
  },
- "lastTime": 1795534347,
+ "lastTime": 1795555978,
  "seen": [
   "T0mOmjggkMCm",
   "UxhGdlN2nBsk",
@@ -55,6 +56,8 @@
   "r6cV5Q2EaFxl",
   "l1AEp2APM7fo",
   "9i1dAVaGrsOT",
-  "3L4qeZR35PYD"
+  "3L4qeZR35PYD",
+  "ik82p6NZ8RN5",
+  "mjSYgn1rmeqf"
  ]
 }
